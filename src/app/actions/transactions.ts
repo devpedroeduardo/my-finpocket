@@ -3,54 +3,50 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-interface TransactionData {
-  amount: number;
+// Interface atualizada com o campo 'date'
+interface CreateTransactionData {
   description: string;
+  amount: number;
   type: "income" | "expense";
   category: string;
+  date: Date; // <--- Novo campo obrigatório
 }
 
-export async function createTransaction(formData: TransactionData) {
+export async function createTransaction(data: CreateTransactionData) {
   const supabase = await createClient();
 
-  // 1. Buscamos a conta E o dono dela (user_id)
-  // O erro acontecia porque pegávamos só o ID da conta e usávamos como user_id
-  const { data: accounts } = await supabase
-    .from("accounts")
-    .select("id, user_id") // <--- Importante: Buscar o user_id também
-    .limit(1);
-
-  const account = accounts?.[0];
-
-  if (!account) {
-    return { error: "Nenhuma conta encontrada. Crie uma conta no banco primeiro." };
+  // 1. Segurança: Pegamos o usuário logado diretamente da sessão
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    return { error: "Usuário não autenticado." };
   }
 
-  // 2. Inserir na tabela de Transações
-  const { error: transactionError } = await supabase.from("transactions").insert({
-    description: formData.description,
-    amount: formData.amount,
-    type: formData.type,
-    category: formData.category, 
-    account_id: account.id,      // ID da Conta
-    user_id: account.user_id,    // ID do Usuário (Agora correto!)
+  // 2. Inserção: Usamos a data escolhida e o ID do usuário
+  const { error } = await supabase.from("transactions").insert({
+    description: data.description,
+    amount: data.amount,
+    type: data.type,
+    category: data.category,
+    created_at: data.date.toISOString(), // <--- Salva a data do calendário
+    user_id: user.id, // Garante que a transação é do usuário logado
   });
 
-  if (transactionError) {
-    console.error("Erro ao salvar no Supabase:", transactionError);
-    return { error: "Erro ao salvar: " + transactionError.message };
+  if (error) {
+    console.error("Erro ao criar transação:", error);
+    return { error: "Erro ao salvar no banco de dados." };
   }
 
-  // 3. Revalidar a tela para atualizar o saldo instantaneamente
+  // 3. Atualiza a tela
   revalidatePath("/");
-  
   return { success: true };
 }
+
+// --- Funções de Delete e Update (Mantidas iguais) ---
 
 export async function deleteTransaction(transactionId: string) {
   const supabase = await createClient();
 
-  // 1. Deleta a transação pelo ID
   const { error } = await supabase
     .from("transactions")
     .delete()
@@ -61,9 +57,7 @@ export async function deleteTransaction(transactionId: string) {
     return { error: "Erro ao excluir transação." };
   }
 
-  // 2. Atualiza a tela (recalcula saldo, gráficos, tudo)
   revalidatePath("/");
-
   return { success: true };
 }
 
@@ -86,7 +80,7 @@ export async function updateTransaction(data: UpdateTransactionData) {
       type: data.type,
       category: data.category,
     })
-    .eq("id", data.id); // <--- O segredo: altera SÓ onde o ID bate
+    .eq("id", data.id);
 
   if (error) {
     console.error("Erro ao atualizar:", error);

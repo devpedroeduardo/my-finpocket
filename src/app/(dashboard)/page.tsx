@@ -1,27 +1,30 @@
+import { Suspense } from "react";
 import { getDashboardStats, getRecentTransactions, getExpensesByCategory } from "@/services/dashboard";
 import { Card, Metric, Text } from "@tremor/react";
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, LogOut } from "lucide-react";
 import { NewTransactionDialog } from "@/components/new-transaction-dialog";
 import { TransactionList, Transaction } from "@/components/transaction-list";
 import { ExpensesChart } from "@/components/expenses-chart";
 import { MonthSelector } from "@/components/month-selector";
-import { SearchInput } from "@/components/search-input"; // <--- Importe aqui
+import { SearchInput } from "@/components/search-input";
+import { signOut } from "@/app/actions/auth";
+
+// 1. FORÇA A PÁGINA A SER DINÂMICA (Garante que o saldo zere ao trocar de conta)
+export const dynamic = "force-dynamic";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 };
 
 interface PageProps {
-  // Agora aceitamos 'search' na URL também
   searchParams: Promise<{ month?: string; search?: string }>;
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const currentMonth = params.month;
-  const currentSearch = params.search; // <--- Pega o termo digitado
+  const currentSearch = params.search;
 
-  // Passamos o termo de busca para todas as funções
   const [stats, transactions, categoryData] = await Promise.all([
     getDashboardStats(currentMonth, currentSearch),
     getRecentTransactions(currentMonth, currentSearch),
@@ -35,12 +38,28 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           Visão Geral
         </h1>
         <div className="flex items-center gap-3">
-          <MonthSelector />
+          {/* Suspense resolve o erro de Hydration do seletor */}
+          <Suspense fallback={<div className="w-[200px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
+            <MonthSelector />
+          </Suspense>
+          
           <NewTransactionDialog />
+
+          {/* BOTÃO DE SAIR (Logout) */}
+          <form action={signOut}>
+            <button 
+              type="submit" 
+              className="p-2 text-slate-500 hover:text-red-600 transition-colors border rounded-md hover:bg-slate-100"
+              title="Sair da conta"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+          </form>
+
         </div>
       </div>
       
-      {/* Cards de Métricas (Reativos à busca!) */}
+      {/* Cards de Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="decoration-top decoration-blue-500 border-l-4 border-l-blue-500">
           <div className="flex items-center justify-between">
@@ -69,8 +88,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-4">
-          {/* Barra de Busca posicionada acima da tabela */}
-          <SearchInput />
+          
+          {/* Suspense resolve o erro de Hydration da busca */}
+          <Suspense fallback={<div className="w-full h-10 bg-slate-100 animate-pulse rounded-md" />}>
+            <SearchInput />
+          </Suspense>
           
           <TransactionList data={transactions as Transaction[]} />
         </div>

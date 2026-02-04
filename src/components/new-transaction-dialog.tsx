@@ -4,10 +4,13 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Loader2 } from "lucide-react";
+import { PlusCircle, Loader2, CalendarIcon } from "lucide-react"; // <--- Icone
+import { format } from "date-fns"; // <--- Formatador de data
+import { ptBR } from "date-fns/locale"; // <--- Português
 import { createTransaction } from "@/app/actions/transactions";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar"; // <--- Componente
 import {
   Dialog,
   DialogContent,
@@ -33,27 +36,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"; // <--- Componente
+import { cn } from "@/lib/utils";
 
-// 1. Lista de Categorias Disponíveis
 const CATEGORIES = [
-  "Alimentação",
-  "Transporte",
-  "Saúde",
-  "Lazer",
-  "Casa",
-  "Educação",
-  "Salário",
-  "Investimentos",
-  "Outros",
+  "Alimentação", "Transporte", "Saúde", "Lazer", "Casa",
+  "Educação", "Salário", "Investimentos", "Outros",
 ];
 
 const formSchema = z.object({
-  description: z.string().min(2, "A descrição precisa ter pelo menos 2 letras."),
-  amount: z.number().min(0.01, "O valor deve ser maior que zero."),
+  description: z.string().min(2, "Mínimo de 2 letras."),
+  amount: z.number().min(0.01, "O valor deve ser positivo."),
   type: z.enum(["income", "expense"]),
-  
-  // CORREÇÃO AQUI: Removemos o objeto { required_error... } e usamos .min(1)
   category: z.string().min(1, "Selecione uma categoria."),
+  date: z.date() // <--- Validação de data
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -67,27 +67,25 @@ export function NewTransactionDialog() {
       description: "",
       amount: 0,
       type: "expense",
-      category: undefined, // Começa sem nada selecionado
+      category: undefined,
+      date: new Date(), // <--- Começa com a data de hoje
     },
   });
 
   async function onSubmit(values: FormValues) {
     try {
-      const result = await createTransaction({
-        ...values,
-        // Envia a categoria selecionada (não mais fixa em "Outros")
-        category: values.category, 
+      await createTransaction(values); // Envia tudo, inclusive a data
+      setOpen(false);
+      form.reset({
+        description: "",
+        amount: 0,
+        type: "expense",
+        category: undefined,
+        date: new Date(),
       });
-
-      if (result?.error) {
-        alert("Erro: " + result.error);
-      } else {
-        setOpen(false);
-        form.reset();
-      }
     } catch (error) {
       console.error(error);
-      alert("Erro inesperado ao salvar.");
+      alert("Erro ao salvar.");
     }
   }
 
@@ -105,14 +103,13 @@ export function NewTransactionDialog() {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Nova Transação</DialogTitle>
-          <DialogDescription>
-            Insira os detalhes da entrada ou saída financeira.
-          </DialogDescription>
+          <DialogDescription>Insira os detalhes.</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={(e) => form.handleSubmit(onSubmit)(e)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             
+            {/* Descrição */}
             <FormField
               control={form.control}
               name="description"
@@ -120,30 +117,7 @@ export function NewTransactionDialog() {
                 <FormItem>
                   <FormLabel>Descrição</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Mercado, Uber..." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="0,00" 
-                      type="number"
-                      step="0.01"
-                      {...field}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        field.onChange(value === "" ? 0 : parseFloat(value));
-                      }}
-                    />
+                    <Input placeholder="Ex: Mercado..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +125,71 @@ export function NewTransactionDialog() {
             />
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Campo Tipo */}
+              {/* Valor */}
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Data (NOVO CAMPO) */}
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="mb-1">Data</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd 'de' MMM, yyyy", { locale: ptBR })
+                            ) : (
+                              <span>Selecione</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="type"
@@ -159,22 +197,16 @@ export function NewTransactionDialog() {
                   <FormItem>
                     <FormLabel>Tipo</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
+                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="income">Receita</SelectItem>
                         <SelectItem value="expense">Despesa</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
 
-              {/* 3. Novo Campo: Categoria */}
               <FormField
                 control={form.control}
                 name="category"
@@ -182,16 +214,10 @@ export function NewTransactionDialog() {
                   <FormItem>
                     <FormLabel>Categoria</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                      </FormControl>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                       <SelectContent>
                         {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
