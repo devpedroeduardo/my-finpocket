@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // <--- Adicionado
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
 import { updateTransaction } from "@/app/actions/transactions";
-import { Transaction } from "@/components/transaction-list"; // Importamos o tipo
+import { getCategories } from "@/app/actions/categories"; // <--- Import
+import { Transaction } from "@/components/transaction-list";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogContent,
@@ -33,17 +37,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-const CATEGORIES = [
-  "Alimentação", "Transporte", "Saúde", "Lazer", "Casa", 
-  "Educação", "Salário", "Investimentos", "Outros"
-];
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   description: z.string().min(2, "Mínimo de 2 letras."),
   amount: z.number().min(0.01, "Valor deve ser maior que zero."),
   type: z.enum(["income", "expense"]),
   category: z.string().min(1, "Selecione uma categoria."),
+  date: z.date(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -51,7 +57,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface EditTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  transaction: Transaction | null; // Recebe os dados da transação clicada
+  transaction: Transaction | null;
 }
 
 export function EditTransactionDialog({ 
@@ -60,29 +66,58 @@ export function EditTransactionDialog({
   transaction 
 }: EditTransactionDialogProps) {
   
-  // Hook para inicializar o form só quando 'transaction' mudar
+  const [dbCategories, setDbCategories] = useState<{id: string, name: string}[]>([]); // <--- Estado
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    values: { // 'values' força o form a atualizar quando a prop muda
-      description: transaction?.description || "",
-      amount: Number(transaction?.amount) || 0,
-      type: transaction?.type || "expense",
-      category: transaction?.category || "",
+    defaultValues: {
+      description: "",
+      amount: 0,
+      type: "expense",
+      category: "",
+      date: new Date(),
     },
   });
+
+  // 1. Carrega os dados da transação ao abrir
+  useEffect(() => {
+    if (transaction) {
+      form.reset({
+        description: transaction.description,
+        amount: Number(transaction.amount),
+        type: transaction.type,
+        category: transaction.category,
+        date: new Date(transaction.created_at),
+      });
+    }
+  }, [transaction, form]);
+
+  // 2. Carrega a lista de categorias do banco ao abrir o modal
+  useEffect(() => {
+    if (open) {
+      getCategories().then(data => setDbCategories(data || []));
+    }
+  }, [open]);
 
   async function onSubmit(values: FormValues) {
     if (!transaction) return;
 
     try {
-      await updateTransaction({
-        id: transaction.id, // ID original
+      const result = await updateTransaction({
+        id: transaction.id,
         ...values,
       });
-      onOpenChange(false); // Fecha o modal
+
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      onOpenChange(false);
+      toast.success("Transação atualizada!");
     } catch (error) {
       console.error(error);
-      alert("Erro ao atualizar.");
+      toast.error("Erro ao atualizar.");
     }
   }
 
@@ -99,9 +134,8 @@ export function EditTransactionDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={(e) => form.handleSubmit(onSubmit)(e)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             
-            {/* Descrição */}
             <FormField
               control={form.control}
               name="description"
@@ -116,31 +150,70 @@ export function EditTransactionDialog({
               )}
             />
 
-            {/* Valor */}
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Valor (R$)</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      {...field}
-                      onChange={(e) => {
-                         const val = e.target.value;
-                         field.onChange(val === "" ? 0 : parseFloat(val));
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Valor (R$)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="mb-1">Data</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "dd/MM/yyyy")
+                            ) : (
+                              <span>Selecione</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* Tipo */}
               <FormField
                 control={form.control}
                 name="type"
@@ -160,7 +233,6 @@ export function EditTransactionDialog({
                 )}
               />
 
-              {/* Categoria */}
               <FormField
                 control={form.control}
                 name="category"
@@ -172,11 +244,16 @@ export function EditTransactionDialog({
                         <SelectTrigger><SelectValue /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {CATEGORIES.map((cat) => (
-                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                        ))}
+                        {dbCategories.length > 0 ? (
+                          dbCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="empty" disabled>Crie uma categoria primeiro</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

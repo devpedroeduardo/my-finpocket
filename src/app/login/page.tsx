@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Wallet, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"; // Se não tiver checkbox instalado, usaremos input padrão abaixo
+import { Wallet, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { toast } from "sonner"; // <--- Importação do Toast
 import { login } from "./actions";
 
 export default function LoginPage() {
@@ -33,11 +34,12 @@ export default function LoginPage() {
     // Se houve erro (ex: senha errada), mostramos na tela
     if (result?.error) {
       setError(result.error);
+      toast.error(result.error); // <--- Feedback visual rápido
       setIsLoading(false); // Para o loading
+    } else {
+      // Se não houve erro, a action vai redirecionar, mas damos um feedback
+      toast.success("Login realizado com sucesso! Redirecionando...");
     }
-    
-    // Se NÃO houve erro, o redirect acontece automaticamente pelo servidor
-    // e não precisamos fazer nada aqui (o navegador vai mudar de página)
   }
 
   return (

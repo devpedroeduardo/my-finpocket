@@ -1,13 +1,14 @@
-// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css"; // <--- ESSA LINHA É OBRIGATÓRIA PARA O ESTILO FUNCIONAR
+import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider"; // <--- 1. Importe aqui
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MyFinPocket",
-  description: "Controle financeiro pessoal",
+  title: "FinPocket",
+  description: "Seu controle financeiro pessoal",
 };
 
 export default function RootLayout({
@@ -16,8 +17,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR">
-      <body className={inter.className}>{children}</body>
+    <html lang="pt-BR" suppressHydrationWarning> 
+      {/* ADICIONE suppressHydrationWarning NA TAG HTML ACIMA PARA EVITAR ERROS DE TEMA */}
+      
+      <body className={inter.className}>
+        {/* 2. Envolva o conteúdo com o ThemeProvider */}
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

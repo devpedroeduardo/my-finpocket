@@ -1,15 +1,16 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { getDashboardStats, getRecentTransactions, getExpensesByCategory } from "@/services/dashboard";
 import { Card, Metric, Text } from "@tremor/react";
-import { Wallet, TrendingUp, TrendingDown, LogOut } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, LogOut, Tags, User } from "lucide-react"; // <--- Trocamos Settings por Tags
 import { NewTransactionDialog } from "@/components/new-transaction-dialog";
 import { TransactionList, Transaction } from "@/components/transaction-list";
 import { ExpensesChart } from "@/components/expenses-chart";
 import { MonthSelector } from "@/components/month-selector";
 import { SearchInput } from "@/components/search-input";
 import { signOut } from "@/app/actions/auth";
+import { ModeToggle } from "@/components/mode-toggle";
 
-// 1. FORÇA A PÁGINA A SER DINÂMICA (Garante que o saldo zere ao trocar de conta)
 export const dynamic = "force-dynamic";
 
 const formatCurrency = (value: number) => {
@@ -37,19 +38,38 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
           Visão Geral
         </h1>
-        <div className="flex items-center gap-3">
-          {/* Suspense resolve o erro de Hydration do seletor */}
+        <div className="flex flex-wrap items-center gap-3">
+          
           <Suspense fallback={<div className="w-[200px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
             <MonthSelector />
           </Suspense>
+
+              {/* NOVO: BOTÃO DE PERFIL 👇 */}
+          <Link href="/profile">
+            <ButtonWrapper title="Meu Perfil">
+              <User className="w-4 h-4" />
+            </ButtonWrapper>
+          </Link>
           
+          {/* BOTÃO DE CATEGORIAS REALOCADO AQUI 👇 */}
+          <Link href="/categories">
+            <ButtonWrapper title="Gerenciar Categorias" className="gap-2 px-4">
+              <Tags className="w-4 h-4" />
+              <span className="hidden sm:inline">Categorias</span>
+            </ButtonWrapper>
+          </Link>
+
           <NewTransactionDialog />
 
-          {/* BOTÃO DE SAIR (Logout) */}
+          {/* DIVISOR VISUAL PARA SEPARAR AS AÇÕES DA CONTA 👇 */}
+          <div className="h-8 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+
+          <ModeToggle />
+
           <form action={signOut}>
             <button 
               type="submit" 
-              className="p-2 text-slate-500 hover:text-red-600 transition-colors border rounded-md hover:bg-slate-100"
+              className="p-2 text-slate-500 hover:text-red-600 transition-colors border rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 dark:border-slate-800"
               title="Sair da conta"
             >
               <LogOut className="w-5 h-5" />
@@ -88,12 +108,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-4">
-          
-          {/* Suspense resolve o erro de Hydration da busca */}
           <Suspense fallback={<div className="w-full h-10 bg-slate-100 animate-pulse rounded-md" />}>
             <SearchInput />
           </Suspense>
-          
           <TransactionList data={transactions as Transaction[]} />
         </div>
         
@@ -102,5 +119,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </div>
       </div>
     </main>
+  );
+}
+
+// Wrapper atualizado para permitir classes extras
+function ButtonWrapper({ children, title, className = "" }: { children: React.ReactNode, title?: string, className?: string }) {
+  return (
+    <div 
+      className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 ${className || 'w-10'}`}
+      title={title}
+    >
+      {children}
+    </div>
   );
 }
