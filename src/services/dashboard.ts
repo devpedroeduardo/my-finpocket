@@ -1,132 +1,88 @@
+"use server";
+
 import { createClient } from "@/lib/supabase/server";
+import { startOfMonth, endOfMonth } from "date-fns";
 
-function getMonthRange(monthStr?: string) {
-  const date = monthStr ? new Date(monthStr + "-02") : new Date();
-  const start = new Date(date.getFullYear(), date.getMonth(), 1).toISOString();
-  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString();
-  return { start, end };
-}
-
-// FIX: Adicionamos este comentário para o ESLint ignorar o 'any' nesta linha específica
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applySearch(query: any, search?: string) {
-  if (search) {
-    // Busca insensível a maiúsculas/minúsculas na descrição OU categoria
-    query.or(`description.ilike.%${search}%,category.ilike.%${search}%`);
-  }
-  return query;
+// MÁGICA DE DATAS: Garante que as consultas do mês ocorram de forma segura sem falhas de fuso horário
+function getMonthBounds(monthStr?: string) {
+  const targetMonth = monthStr || new Date().toISOString().slice(0, 7);
+  // Usa o meio-dia como âncora para garantir que o dia 1 não vire dia 31 do mês anterior
+  const baseDate = new Date(`${targetMonth}-01T12:00:00`); 
+  
+  return {
+    startDate: startOfMonth(baseDate).toISOString(),
+    endDate: endOfMonth(baseDate).toISOString()
+  };
 }
 
 export async function getDashboardStats(month?: string, search?: string) {
   const supabase = await createClient();
-  const { start, end } = getMonthRange(month);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { balance: 0, income: 0, expense: 0 };
 
-  let query = supabase
-    .from("transactions")
-    .select("amount, type")
-    .gte("created_at", start)
-    .lte("created_at", end);
+  const { startDate, endDate } = getMonthBounds(month);
 
-  // Aplica a busca (Se pesquisar "Uber", soma só Uber)
-  query = applySearch(query, search);
+  let query = supabase.from("transactions").select("amount, type")
+    .eq("user_id", user.id)
+    .gte("created_at", startDate)
+    .lte("created_at", endDate);
+
+  if (search) query = query.ilike("description", `%${search}%`);
 
   const { data } = await query;
+  if (!data) return { balance: 0, income: 0, expense: 0 };
 
-  let income = 0;
-  let expense = 0;
-
-  data?.forEach((t) => {
-    if (t.type === "income") income += Number(t.amount);
-    else expense += Number(t.amount);
-  });
+  const income = data.filter(t => t.type === 'income').reduce((acc, curr) => acc + Number(curr.amount), 0);
+  const expense = data.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0);
 
   return { balance: income - expense, income, expense };
 }
 
-export async function getRecentTransactions(
-  month?: string, 
-  search?: string,
-  type?: string,        
-  category?: string     
-) {
+export async function getRecentTransactions(month?: string, search?: string, type?: string, category?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) return [];
 
-  // Começa a montar a query
-  let query = supabase
-    .from("transactions")
-    .select("*")
+  const { startDate, endDate } = getMonthBounds(month);
+
+  let query = supabase.from("transactions").select(`*, wallets ( name )`)
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .gte("created_at", startDate)
+    .lte("created_at", endDate);
 
-  // --- FILTROS ---
-  
-  // 1. Filtro de Mês
-  if (month) {
-    const [year, m] = month.split("-");
-    const startDate = new Date(parseInt(year), parseInt(m) - 1, 1).toISOString();
-    const endDate = new Date(parseInt(year), parseInt(m), 0, 23, 59, 59).toISOString();
-    query = query.gte("created_at", startDate).lte("created_at", endDate);
-  }
+  if (search) query = query.ilike("description", `%${search}%`);
+  if (type && type !== "all") query = query.eq("type", type);
+  if (category && category !== "all") query = query.eq("category", category);
 
-  // 2. Filtro de Busca por Texto
-  if (search) {
-    query = query.ilike("description", `%${search}%`);
-  }
-
-  // 3. Filtro de Tipo (Receita/Despesa) <--- NOVO
-  if (type && type !== "all") {
-    query = query.eq("type", type);
-  }
-
-  // 4. Filtro de Categoria <--- NOVO
-  if (category && category !== "all") {
-    query = query.eq("category", category);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Erro ao buscar transações:", error);
-    return [];
-  }
-
-  return data;
+  const { data } = await query;
+  return data || [];
 }
 
 export async function getExpensesByCategory(month?: string, search?: string) {
   const supabase = await createClient();
-  const { start, end } = getMonthRange(month);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
 
-  let query = supabase
-    .from("transactions")
-    .select("category, amount")
+  const { startDate, endDate } = getMonthBounds(month);
+
+  let query = supabase.from("transactions").select("amount, category")
+    .eq("user_id", user.id)
     .eq("type", "expense")
-    .gte("created_at", start)
-    .lte("created_at", end);
+    .gte("created_at", startDate)
+    .lte("created_at", endDate);
 
-  // Aplica a busca no gráfico também!
-  query = applySearch(query, search);
+  if (search) query = query.ilike("description", `%${search}%`);
 
   const { data } = await query;
-
   if (!data) return [];
 
   const grouped = data.reduce((acc, curr) => {
-    const category = curr.category;
-    const amount = Number(curr.amount);
-    if (!acc[category]) acc[category] = 0;
-    acc[category] += amount;
+    acc[curr.category] = (acc[curr.category] || 0) + Number(curr.amount);
     return acc;
   }, {} as Record<string, number>);
 
-  return Object.entries(grouped).map(([category, amount], index) => {
-    const colors = [
-      "hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", 
-      "hsl(var(--chart-4))", "hsl(var(--chart-5))"
-    ];
-    return { category, amount, fill: colors[index % colors.length] };
-  });
+  return Object.entries(grouped)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
 }

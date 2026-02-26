@@ -1,40 +1,9 @@
-"use client";
-
-import { useState } from "react";
-import { MoreHorizontal, Trash2, Pencil } from "lucide-react"; // <--- Import Pencil
-import { deleteTransaction } from "@/app/actions/transactions";
-import { EditTransactionDialog } from "@/components/edit-transaction-dialog"; // <--- Import Modal
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { ArrowDownCircle, ArrowUpCircle, Landmark, Paperclip } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
+// Corrigida a tipagem de 'receipt_url' e adicionada a carteira
 export interface Transaction {
   id: string;
   description: string;
@@ -42,157 +11,72 @@ export interface Transaction {
   type: "income" | "expense";
   category: string;
   created_at: string;
+  wallets?: { name: string }; 
+  receipt_url?: string; 
 }
 
-interface TransactionListProps {
-  data: Transaction[];
-}
+export function TransactionList({ data }: { data: Transaction[] }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="p-8 text-center border border-dashed rounded-xl text-slate-500 bg-white dark:bg-slate-900">
+        Nenhuma transação encontrada neste período.
+      </div>
+    );
+  }
 
-export function TransactionList({ data }: TransactionListProps) {
-  // Estados para Controle de Modais
-  const [isAlertOpen, setIsAlertOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false); // Novo estado
-  
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Intl.DateTimeFormat("pt-BR").format(new Date(dateString));
-  };
-
-  const handleDelete = async () => {
-    if (selectedTransaction) {
-      await deleteTransaction(selectedTransaction.id);
-      setIsAlertOpen(false);
-      setSelectedTransaction(null);
-    }
-  };
+  const formatCurrency = (value: number) => 
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   return (
-    <>
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Últimas Movimentações</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell className="font-medium">
-                    {transaction.description}
-                    <div className="md:hidden text-xs text-muted-foreground">
-                      {transaction.type === "income" ? "Entrada" : "Saída"}
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <Badge variant="outline" className="font-normal">
-                      {transaction.category}
-                    </Badge>
-                  </TableCell>
-                  
-                  <TableCell className="text-muted-foreground">
-                    {formatDate(transaction.created_at)}
-                  </TableCell>
-                  
-                  <TableCell className={`text-right font-bold ${
-                    transaction.type === "income" ? "text-emerald-600" : "text-red-600"
-                  }`}>
-                    {transaction.type === "expense" ? "- " : "+ "}
-                    {formatCurrency(transaction.amount)}
-                  </TableCell>
+    <div className="space-y-3">
+      {data.map((transaction) => (
+        <div key={transaction.id} className="flex items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-xl border shadow-sm">
+          <div className="flex items-center gap-4">
+            
+            <div className={`p-2 rounded-full ${transaction.type === 'income' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30' : 'bg-rose-100 text-rose-600 dark:bg-rose-900/30'}`}>
+              {transaction.type === 'income' ? <ArrowUpCircle className="w-5 h-5" /> : <ArrowDownCircle className="w-5 h-5" />}
+            </div>
+            
+            <div>
+              {/* Contêiner flexível para alinhar Nome, Tag do Banco e Botão de Anexo */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold text-slate-800 dark:text-slate-200">{transaction.description}</p>
+                
+                {/* Tag do Banco */}
+                {transaction.wallets?.name && (
+                  <Badge variant="secondary" className="text-[10px] h-5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 gap-1 px-1.5 border border-slate-200 dark:border-slate-700">
+                    <Landmark className="w-3 h-3" />
+                    {transaction.wallets.name}
+                  </Badge>
+                )}
 
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Abrir menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        
-                        {/* Botão Editar */}
-                        <DropdownMenuItem 
-                          className="cursor-pointer"
-                          onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setIsEditOpen(true);
-                          }}
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        
-                        <DropdownMenuSeparator />
-                        
-                        {/* Botão Excluir */}
-                        <DropdownMenuItem 
-                          className="text-red-600 cursor-pointer"
-                          onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setIsAlertOpen(true);
-                          }}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
+                {/* Botão de Ver Comprovante */}
+                {transaction.receipt_url && (
+                  <a 
+                    href={transaction.receipt_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] font-medium text-blue-500 hover:text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md transition-colors border border-blue-100 dark:border-blue-900/50"
+                    title="Ver Comprovante Anexado"
+                  >
+                    <Paperclip className="w-3 h-3" /> Anexo
+                  </a>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                <span>{format(new Date(transaction.created_at), "dd 'de' MMM", { locale: ptBR })}</span>
+                <span>•</span>
+                <span>{transaction.category}</span>
+              </div>
+            </div>
 
-              {data.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                    Nenhuma movimentação encontrada neste mês.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Modal de Confirmação de Exclusão */}
-      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Essa ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-              Sim, excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Modal de Edição (Novo) */}
-      <EditTransactionDialog 
-        open={isEditOpen} 
-        onOpenChange={setIsEditOpen} 
-        transaction={selectedTransaction} 
-      />
-    </>
+          </div>
+          <div className={`font-bold whitespace-nowrap ${transaction.type === 'income' ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
