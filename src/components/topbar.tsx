@@ -1,16 +1,22 @@
 "use client";
 
+import React from "react";
 import Link from "next/link";
 import { User, LogOut } from "lucide-react";
 import { ModeToggle } from "@/components/mode-toggle";
+import { NotificationsDropdown } from "./notifications-dropdown";
 import { signOut } from "@/app/actions/auth";
 
 export function Topbar() {
   return (
-    <header className="h-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b flex items-center justify-between px-6 sticky top-0 z-10">
-      <div className="flex-1" /> {/* Espaçador para empurrar os botões pra direita */}
+    <header className="h-16 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border-b flex items-center justify-between px-6 sticky top-0 z-30 transition-colors">
+      {/* Espaçador para empurrar os botões pra direita */}
+      <div className="flex-1" />
       
       <div className="flex items-center gap-3">
+        {/* O NOSSO SININHO DE ALERTAS FINANCEIROS 👇 */}
+        <NotificationsDropdown />
+
         {/* Botão de Perfil */}
         <Link 
           href="/profile" 

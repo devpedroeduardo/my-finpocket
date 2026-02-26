@@ -13,6 +13,7 @@ export interface TransactionData {
   wallet_id?: string;
   receipt_url?: string;
   installments?: number; // <--- NOVO: Quantidade de parcelas
+  status?: "paid" | "pending";
 }
 
 export async function uploadReceipt(formData: FormData) {
@@ -110,6 +111,95 @@ export async function deleteTransaction(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) return { error: "Erro ao deletar transação." };
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function createTransfer(data: { description?: string; amount: number; date: Date; from_wallet_id: string; to_wallet_id: string }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+  if (data.from_wallet_id === data.to_wallet_id) return { error: "As contas de origem e destino devem ser diferentes." };
+
+  // 1. Cria a SAÍDA da conta de origem
+  const expense = {
+    user_id: user.id,
+    description: data.description || "Transferência enviada",
+    amount: data.amount,
+    type: "expense",
+    category: "Transferência",
+    created_at: data.date,
+    wallet_id: data.from_wallet_id,
+  };
+
+  // 2. Cria a ENTRADA na conta de destino
+  const income = {
+    user_id: user.id,
+    description: data.description || "Transferência recebida",
+    amount: data.amount,
+    type: "income",
+    category: "Transferência",
+    created_at: data.date,
+    wallet_id: data.to_wallet_id,
+  };
+
+  // 3. Salva as duas juntas no banco!
+  const { error } = await supabase.from("transactions").insert([expense, income]);
+
+  if (error) return { error: "Erro ao realizar transferência." };
+
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function bulkCreateTransactions(
+  transactions: { description: string; amount: number; type: "income" | "expense"; date: Date; category: string }[],
+  wallet_id: string
+) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { error: "Não autorizado" };
+
+  // Prepara a lista para o formato exato do banco de dados
+  const transactionsToInsert = transactions.map(t => ({
+    user_id: user.id,
+    description: t.description,
+    amount: t.amount,
+    type: t.type,
+    category: t.category,
+    created_at: t.date,
+    wallet_id: wallet_id === "none" ? null : wallet_id,
+  }));
+
+  // O Supabase permite inserir um Array inteiro de uma vez só!
+  const { error } = await supabase.from("transactions").insert(transactionsToInsert);
+
+  if (error) {
+    console.error("Erro no Bulk Insert:", error);
+    return { error: "Erro ao importar as transações." };
+  }
+
+  revalidatePath("/");
+  return { success: true };
+}
+
+export async function toggleTransactionStatus(id: string, currentStatus: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autorizado" };
+
+  const newStatus = currentStatus === "paid" ? "pending" : "paid";
+
+  const { error } = await supabase
+    .from("transactions")
+    .update({ status: newStatus })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) return { error: "Erro ao atualizar status." };
+
   revalidatePath("/");
   return { success: true };
 }

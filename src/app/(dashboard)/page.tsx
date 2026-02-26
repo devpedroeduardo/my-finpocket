@@ -13,6 +13,9 @@ import { ExportButton } from "@/components/export-button";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 
+// IMPORTANDO O NOSSO NOVO ASSISTENTE DE IA AQUI 👇
+import { AIAdvisor } from "@/components/ai-advisor";
+
 export const dynamic = "force-dynamic";
 
 const formatCurrency = (value: number) => {
@@ -37,7 +40,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     getExpensesByCategory(currentMonth, currentSearch),
   ]);
 
-  // CORREÇÃO: Mapeando os dados para o formato exato que o gráfico espera! 👇
   const chartColors = ["#10b981", "#3b82f6", "#f43f5e", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899"];
   const formattedCategoryData = categoryData.map((item, index) => ({
     category: item.name,
@@ -61,6 +63,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </h1>
             <NewTransactionDialog />
           </div>
+
+          {/* ADICIONANDO O COMPONENTE DA IA AQUI 👇 */}
+          <AIAdvisor />
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="decoration-top decoration-blue-500 border-l-4 border-l-blue-500 shadow-sm">
@@ -117,7 +122,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
             
             <div className="xl:col-span-1">
-              {/* O gráfico agora recebe os dados no formato correto 👇 */}
               <ExpensesChart data={formattedCategoryData} />
             </div>
 

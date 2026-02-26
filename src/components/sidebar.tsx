@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Repeat, Target, Tags, Wallet, Landmark } from "lucide-react"; // <--- Landmark adicionado
+import { Home, Repeat, Target, Tags, Wallet, Landmark, FileText } from "lucide-react"; // <--- Landmark adicionado
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -11,8 +11,10 @@ export function Sidebar() {
     { href: "/", label: "Dashboard", icon: Home },
     { href: "/wallets", label: "Contas", icon: Landmark }, // <--- NOVO LINK AQUI
     { href: "/subscriptions", label: "Assinaturas", icon: Repeat },
-    { href: "/budgets", label: "Metas", icon: Target },
     { href: "/categories", label: "Categorias", icon: Tags },
+    { href: "/reports", label: "Relatórios", icon: Wallet },
+    { href: "/goals", label: "Objetivos", icon: Target}, // <--- NOVO LINK AQUI
+    { href: "/import", label: "Importar", icon: FileText },
   ];
 
   return (
