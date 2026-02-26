@@ -43,22 +43,57 @@ export async function getDashboardStats(month?: string, search?: string) {
   return { balance: income - expense, income, expense };
 }
 
-export async function getRecentTransactions(month?: string, search?: string) {
+export async function getRecentTransactions(
+  month?: string, 
+  search?: string,
+  type?: string,        
+  category?: string     
+) {
   const supabase = await createClient();
-  const { start, end } = getMonthRange(month);
+  const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) return [];
+
+  // Começa a montar a query
   let query = supabase
     .from("transactions")
     .select("*")
-    .gte("created_at", start)
-    .lte("created_at", end)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Aplica a busca na lista
-  query = applySearch(query, search);
+  // --- FILTROS ---
+  
+  // 1. Filtro de Mês
+  if (month) {
+    const [year, m] = month.split("-");
+    const startDate = new Date(parseInt(year), parseInt(m) - 1, 1).toISOString();
+    const endDate = new Date(parseInt(year), parseInt(m), 0, 23, 59, 59).toISOString();
+    query = query.gte("created_at", startDate).lte("created_at", endDate);
+  }
 
-  const { data } = await query;
-  return data || [];
+  // 2. Filtro de Busca por Texto
+  if (search) {
+    query = query.ilike("description", `%${search}%`);
+  }
+
+  // 3. Filtro de Tipo (Receita/Despesa) <--- NOVO
+  if (type && type !== "all") {
+    query = query.eq("type", type);
+  }
+
+  // 4. Filtro de Categoria <--- NOVO
+  if (category && category !== "all") {
+    query = query.eq("category", category);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Erro ao buscar transações:", error);
+    return [];
+  }
+
+  return data;
 }
 
 export async function getExpensesByCategory(month?: string, search?: string) {

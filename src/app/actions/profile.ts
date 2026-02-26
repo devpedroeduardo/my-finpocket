@@ -13,7 +13,7 @@ export async function getUserProfile() {
     email: user.email,
     name: user.user_metadata?.full_name || "",
     phone: user.user_metadata?.phone_number || "",
-    avatar_url: user.user_metadata?.avatar_url || "", // <--- NOVO: Puxa a foto
+    avatar_url: user.user_metadata?.avatar_url || "",
   };
 }
 
@@ -25,10 +25,13 @@ export async function updateProfile(formData: FormData) {
   const name = formData.get("name") as string;
   const phone = formData.get("phone") as string;
   const newPassword = formData.get("password") as string;
-  const avatarFile = formData.get("avatar") as File | null; // <--- NOVO: Pega o arquivo
+  const avatarFile = formData.get("avatar") as File | null;
 
-  // Prepara o objeto de atualização
-  const updatePayload: any = {
+  // CORREÇÃO: Tipagem estrita no lugar de 'any'
+  const updatePayload: { 
+    data: { full_name: string; phone_number: string; avatar_url?: string }; 
+    password?: string 
+  } = {
     data: {
       full_name: name,
       phone_number: phone,
@@ -37,11 +40,11 @@ export async function updateProfile(formData: FormData) {
 
   // 1. LÓGICA DE UPLOAD DE IMAGEM
   if (avatarFile && avatarFile.size > 0) {
-    // Cria um nome único para o arquivo (ex: id_do_usuario-12345678.jpg)
     const fileExt = avatarFile.name.split('.').pop();
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // CORREÇÃO: Removido o 'uploadData' que não estava sendo usado
+    const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(fileName, avatarFile, { upsert: true });
 
@@ -50,12 +53,11 @@ export async function updateProfile(formData: FormData) {
       return { error: "Erro ao enviar a foto de perfil." };
     }
 
-    // Pega a URL pública da imagem recém-upada
     const { data: { publicUrl } } = supabase.storage
       .from('avatars')
       .getPublicUrl(fileName);
 
-    updatePayload.data.avatar_url = publicUrl; // Salva a URL no payload
+    updatePayload.data.avatar_url = publicUrl;
   }
 
   // 2. LÓGICA DE SENHA
