@@ -1,7 +1,7 @@
 import React, { Suspense } from "react";
 import { getDashboardStats, getRecentTransactions, getExpensesByCategory } from "@/services/dashboard";
 import { Card, Metric, Text } from "@tremor/react";
-import { Wallet, TrendingUp, TrendingDown } from "lucide-react"; 
+import { Wallet, TrendingUp, TrendingDown, PiggyBank } from "lucide-react"; 
 import { NewTransactionDialog } from "@/components/new-transaction-dialog";
 import { TransactionList, Transaction } from "@/components/transaction-list";
 import { ExpensesChart } from "@/components/expenses-chart";
@@ -12,9 +12,10 @@ import { ExportButton } from "@/components/export-button";
 
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
-
-// IMPORTANDO O NOSSO NOVO ASSISTENTE DE IA AQUI 👇
 import { AIAdvisor } from "@/components/ai-advisor";
+
+// IMPORTANDO O NOVO GRÁFICO 👇
+import { CashFlowChart } from "@/components/cash-flow-chart";
 
 export const dynamic = "force-dynamic";
 
@@ -64,10 +65,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <NewTransactionDialog />
           </div>
 
-          {/* ADICIONANDO O COMPONENTE DA IA AQUI 👇 */}
           <AIAdvisor />
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* MUDAMOS PARA 4 COLUNAS: grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 👇 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card className="decoration-top decoration-blue-500 border-l-4 border-l-blue-500 shadow-sm">
               <div className="flex items-center justify-between">
                 <Text>Saldo {currentSearch || currentType || currentCategory ? '(Filtrado)' : ''}</Text>
@@ -91,10 +92,20 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
               <Metric className="mt-2 text-rose-600">{formatCurrency(stats.expense)}</Metric>
             </Card>
+
+            {/* O NOVO CARD DE DINHEIRO GUARDADO 👇 */}
+            <Card className="decoration-top decoration-indigo-500 border-l-4 border-l-indigo-500 shadow-sm">
+              <div className="flex items-center justify-between">
+                <Text>Nos Cofres</Text>
+                <PiggyBank className="w-5 h-5 text-indigo-600" />
+              </div>
+              <Metric className="mt-2 text-indigo-600">{formatCurrency(stats.saved || 0)}</Metric>
+            </Card>
           </div>
 
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             
+            {/* LADO ESQUERDO: TABELA DE MOVIMENTAÇÕES */}
             <div className="xl:col-span-2 space-y-4">
               <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border shadow-sm space-y-5">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 dark:border-slate-800 pb-4 gap-4">
@@ -121,8 +132,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               <TransactionList data={transactions as Transaction[]} />
             </div>
             
-            <div className="xl:col-span-1">
+            {/* LADO DIREITO: GRÁFICOS */}
+            <div className="xl:col-span-1 space-y-6">
+              {/* Gráfico Redondo de Despesas */}
               <ExpensesChart data={formattedCategoryData} />
+              
+              {/* NOVO GRÁFICO DE BARRAS DE FLUXO DE CAIXA 👇 */}
+              <CashFlowChart income={stats.income} expense={stats.expense} />
             </div>
 
           </div>

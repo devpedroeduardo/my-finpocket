@@ -26,7 +26,7 @@ export async function generateFinancialAdvice(monthStr?: string, focus: 'general
     }
 
     const prompt = `
-      Você é a IA Conselheira Financeira oficial do aplicativo "FinPocket".
+      Você é a IA Conselheira Financeira oficial do aplicativo "MyFinPocket".
       Aja como um mentor amigável, direto, humano e encorajador.
       
       Aqui estão os dados reais do usuário neste mês atual:

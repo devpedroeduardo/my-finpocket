@@ -62,7 +62,7 @@ export function AIAdvisor() {
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                FinPocket AI
+                MyFinPocket AI
                 <span className="text-[10px] bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-2 py-0.5 rounded-full uppercase font-bold tracking-wider">
                   Beta
                 </span>

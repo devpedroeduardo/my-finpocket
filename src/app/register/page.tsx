@@ -38,7 +38,7 @@ export default function RegisterPage() {
           <div className="p-3 bg-emerald-100 rounded-full">
             <Wallet className="w-8 h-8 text-emerald-600" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tighter">FinPocket</h1>
+          <h1 className="text-2xl font-bold tracking-tighter">MyFinPocket</h1>
           <p className="text-slate-500">Crie sua conta gratuitamente.</p>
         </div>
 

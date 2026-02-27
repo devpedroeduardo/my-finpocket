@@ -184,7 +184,7 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Preferências do Sistema</CardTitle>
-                <CardDescription>Configure como o FinPocket funciona para você.</CardDescription>
+                <CardDescription>Configure como o MyFinPocket funciona para você.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-4 border rounded-lg">

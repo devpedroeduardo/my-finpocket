@@ -38,7 +38,7 @@ export function ExportButton({ data }: { data: Transaction[] }) {
     const blob = new Blob([`\uFEFF${csvContent}`], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `FinPocket_Relatorio_${format(new Date(), "dd_MM_yyyy")}.csv`;
+    link.download = `MyFinPocket_Relatorio_${format(new Date(), "dd_MM_yyyy")}.csv`;
     link.click();
   };
 
@@ -51,7 +51,7 @@ export function ExportButton({ data }: { data: Transaction[] }) {
     const doc = new jsPDF();
     
     doc.setFontSize(18);
-    doc.text("Relatório Financeiro - FinPocket", 14, 22);
+    doc.text("Relatório Financeiro - MyFinPocket", 14, 22);
     
     doc.setFontSize(11);
     doc.setTextColor(100);
@@ -103,7 +103,7 @@ export function ExportButton({ data }: { data: Transaction[] }) {
     doc.setFont("helvetica", "bold");
     doc.text(`Saldo Final: R$ ${balance.toFixed(2).replace(".", ",")}`, 14, finalY + 28);
 
-    doc.save(`FinPocket_Relatorio_${format(new Date(), "dd_MM_yyyy")}.pdf`);
+    doc.save(`MyFinPocket_Relatorio_${format(new Date(), "dd_MM_yyyy")}.pdf`);
   };
 
   return (

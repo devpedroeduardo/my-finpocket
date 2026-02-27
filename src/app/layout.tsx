@@ -7,8 +7,16 @@ import { ThemeProvider } from "@/components/theme-provider"; // <--- 1. Importe 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FinPocket",
+  title: "MyFinPocket",
   description: "Seu controle financeiro pessoal",
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' }, // <--- O MÁGICO AQUI
+    ],
+    apple: [
+      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }, 
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -23,7 +23,7 @@ export function Sidebar() {
       <div className="h-16 flex items-center px-6 border-b">
         <Link href="/" className="flex items-center gap-2 text-emerald-600 font-bold text-xl">
           <Wallet className="w-6 h-6" />
-          FinPocket
+          MyFinPocket
         </Link>
       </div>
       
