@@ -3,37 +3,54 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// 1. Busca todas as assinaturas do usuário
 export async function getSubscriptions() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) return [];
 
-  const { data, error } = await supabase
+  // 1. Buscamos as assinaturas SOZINHAS (sem forçar o join que está causando o erro)
+  const { data: subs, error: subsError } = await supabase
     .from("subscriptions")
     .select("*")
     .eq("user_id", user.id)
-    .order("billing_day", { ascending: true });
+    .order("due_day", { ascending: true });
 
-  if (error) {
-    console.error("Erro ao buscar assinaturas:", error);
+  if (subsError) {
+    console.error("Erro ao buscar assinaturas:", subsError);
     return [];
   }
 
-  return data;
+  // 2. Buscamos as carteiras do usuário
+  const { data: wallets } = await supabase
+    .from("wallets")
+    .select("id, name")
+    .eq("user_id", user.id);
+
+  // 3. Fazemos o "Join" manualmente no JavaScript! (À prova de falhas)
+  const mappedSubs = subs.map(sub => {
+    const matchedWallet = wallets?.find(w => w.id === sub.wallet_id);
+    return {
+      ...sub,
+      wallets: matchedWallet ? { name: matchedWallet.name } : null
+    };
+  });
+
+  return mappedSubs;
 }
 
-// 2. Cria uma nova assinatura
-export async function createSubscription(data: { name: string; amount: number; category: string; billing_day: number }) {
+export async function createSubscription(data: { name: string; amount: number; category: string; due_day: number; wallet_id?: string }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
   if (!user) return { error: "Não autorizado" };
 
   const { error } = await supabase.from("subscriptions").insert({
     user_id: user.id,
-    ...data
+    name: data.name,
+    amount: data.amount,
+    category: data.category,
+    due_day: data.due_day,
+    wallet_id: data.wallet_id === "none" ? null : data.wallet_id,
+    last_processed_month: "", // Deixa vazio para forçar a geração imediata no mês atual
   });
 
   if (error) return { error: "Erro ao criar assinatura." };
@@ -42,29 +59,60 @@ export async function createSubscription(data: { name: string; amount: number; c
   return { success: true };
 }
 
-// 3. Deleta uma assinatura
 export async function deleteSubscription(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("subscriptions").delete().eq("id", id);
-
+  
   if (error) return { error: "Erro ao deletar assinatura." };
-
+  
   revalidatePath("/subscriptions");
   return { success: true };
 }
 
-// 4. Pausa ou Retoma uma assinatura
-export async function toggleSubscriptionStatus(id: string, currentStatus: string) {
+// Função que roda em segundo plano para gerar as contas do mês
+export async function processMonthlySubscriptions() {
   const supabase = await createClient();
-  const newStatus = currentStatus === 'active' ? 'paused' : 'active';
-  
-  const { error } = await supabase
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const now = new Date();
+  const currentMonthStr = now.toISOString().slice(0, 7);
+
+  const { data: subs } = await supabase
     .from("subscriptions")
-    .update({ status: newStatus })
-    .eq("id", id);
+    .select("*")
+    .eq("user_id", user.id)
+    .neq("last_processed_month", currentMonthStr);
 
-  if (error) return { error: "Erro ao atualizar status." };
+  if (!subs || subs.length === 0) return;
 
-  revalidatePath("/subscriptions");
-  return { success: true };
+  const transactionsToInsert = [];
+  const subsToUpdate = [];
+
+  for (const sub of subs) {
+    // CORREÇÃO: Trocamos 'let' por 'const' para deixar o ESLint feliz!
+    const dueDate = new Date(now.getFullYear(), now.getMonth(), sub.due_day, 12, 0, 0);
+
+    transactionsToInsert.push({
+      user_id: user.id,
+      description: sub.name,
+      amount: sub.amount,
+      type: "expense",
+      category: sub.category,
+      status: "pending", 
+      created_at: dueDate.toISOString(),
+      wallet_id: sub.wallet_id,
+    });
+
+    subsToUpdate.push(sub.id);
+  }
+
+  const { error: insertError } = await supabase.from("transactions").insert(transactionsToInsert);
+
+  if (!insertError) {
+    await supabase
+      .from("subscriptions")
+      .update({ last_processed_month: currentMonthStr })
+      .in("id", subsToUpdate);
+  }
 }

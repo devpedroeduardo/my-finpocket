@@ -4,12 +4,15 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { PlusCircle, Loader2, CalendarIcon, Landmark, Paperclip, CreditCard, ArrowRightLeft, Clock } from "lucide-react";
+import { PlusCircle, Loader2, CalendarIcon, Landmark, Paperclip, CreditCard, ArrowRightLeft, Clock, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { createTransaction, uploadReceipt, createTransfer } from "@/app/actions/transactions"; 
 import { getCategories } from "@/app/actions/categories";
 import { getWallets } from "@/app/actions/wallets"; 
+
+// Importando o nosso Cérebro da IA 👇
+import { scanReceipt } from "@/app/actions/ai-scanner";
 
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -28,7 +31,7 @@ const formSchema = z.object({
   category: z.string().min(1, "Selecione uma categoria."),
   wallet_id: z.string().optional(),
   installments: z.number().min(1, "Mínimo 1 parcela").max(72, "Máximo 72 parcelas"), 
-  status: z.enum(["paid", "pending"]), // <--- NOVO CAMPO DE STATUS
+  status: z.enum(["paid", "pending"]), 
   date: z.date(),
 });
 type FormValues = z.infer<typeof formSchema>;
@@ -50,6 +53,9 @@ export function NewTransactionDialog() {
   const [dbCategories, setDbCategories] = useState<{id: string, name: string}[]>([]);
   const [dbWallets, setDbWallets] = useState<{id: string, name: string}[]>([]);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  
+  // Estado para controlar o carregamento da IA
+  const [isScanning, setIsScanning] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -77,6 +83,72 @@ export function NewTransactionDialog() {
     }
   }, [open]);
 
+  // ==========================================================================
+  // LÓGICA DA INTELIGÊNCIA ARTIFICIAL: Ler Recibo
+  // ==========================================================================
+  const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve((reader.result as string).split(',')[1]); 
+    reader.onerror = error => reject(error);
+  });
+
+  async function handleScanReceipt(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error("Por favor, selecione uma imagem.");
+      return;
+    }
+
+    setIsScanning(true);
+    const toastId = toast.loading("🤖 Analisando imagem com Inteligência Artificial...");
+
+    try {
+      const base64 = await toBase64(file);
+      const result = await scanReceipt(base64, file.type);
+
+      if (result.error || !result.success) {
+        toast.error(result.error || "Não foi possível extrair os dados.", { id: toastId });
+        return;
+      }
+
+      const aiData = result.data;
+
+      // Auto-preenche os campos do formulário com os dados da IA!
+      if (aiData.description) form.setValue("description", aiData.description, { shouldValidate: true });
+      if (aiData.amount) form.setValue("amount", Number(aiData.amount), { shouldValidate: true });
+      if (aiData.date) {
+        // Truque para evitar erro de fuso horário ao criar a data
+        const parsedDate = new Date(aiData.date + "T12:00:00");
+        if (!isNaN(parsedDate.getTime())) form.setValue("date", parsedDate, { shouldValidate: true });
+      }
+
+      // Tenta cruzar a categoria sugerida pela IA com as suas categorias do banco
+      if (aiData.category && dbCategories.length > 0) {
+        const matched = dbCategories.find(c => 
+          c.name.toLowerCase().includes(aiData.category.toLowerCase()) || 
+          aiData.category.toLowerCase().includes(c.name.toLowerCase())
+        );
+        if (matched) {
+          form.setValue("category", matched.name, { shouldValidate: true });
+        }
+      }
+
+      // Aproveita e já joga o arquivo no input "oficial" de anexo
+      setReceiptFile(file);
+
+      toast.success("Mágica feita! Formulário auto-preenchido. ✨", { id: toastId });
+    } catch (error) {
+      toast.error("Erro inesperado ao conectar com a IA.", { id: toastId });
+    } finally {
+      setIsScanning(false);
+      e.target.value = ''; // Reseta o input de arquivo
+    }
+  }
+  // ==========================================================================
+
   // SUBMIT TRANSAÇÃO NORMAL
   async function onSubmitTransaction(values: FormValues) {
     try {
@@ -91,7 +163,6 @@ export function NewTransactionDialog() {
 
       const finalWalletId = values.wallet_id === "none" ? undefined : values.wallet_id;
       
-      // Enviando todos os dados, incluindo o novo "status"
       const result = await createTransaction({ 
         ...values, 
         wallet_id: finalWalletId, 
@@ -133,7 +204,7 @@ export function NewTransactionDialog() {
   return (
     <Dialog open={open} onOpenChange={(val) => { setOpen(val); if (!val) { setReceiptFile(null); setMode('transaction'); } }}>
       <DialogTrigger asChild>
-        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm">
+        <Button className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2 shadow-sm transition-all hover:scale-105">
           <PlusCircle className="w-4 h-4" /> Nova Transação
         </Button>
       </DialogTrigger>
@@ -159,6 +230,18 @@ export function NewTransactionDialog() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmitTransaction)} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">
               
+              {/* BOTÃO MÁGICO DA IA AQUI 👇 */}
+              <div className="mb-2">
+                <label className="cursor-pointer flex items-center justify-center w-full py-2.5 px-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border border-indigo-100 dark:border-indigo-800/50 rounded-lg text-indigo-700 dark:text-indigo-400 font-medium text-sm hover:from-indigo-100 hover:to-purple-100 dark:hover:from-indigo-900/40 dark:hover:to-purple-900/40 transition-all shadow-sm">
+                  {isScanning ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analisando recibo...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-2 text-indigo-500" /> Auto-preencher com Recibo</>
+                  )}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleScanReceipt} disabled={isScanning} />
+                </label>
+              </div>
+
               <FormField control={form.control} name="description" render={({ field }) => (
                 <FormItem><FormLabel>Descrição</FormLabel><FormControl><Input placeholder="Ex: Conta de Luz..." {...field} /></FormControl><FormMessage /></FormItem>
               )}/>
@@ -188,12 +271,11 @@ export function NewTransactionDialog() {
                 )}/>
               </div>
 
-              {/* SELETORES DE TIPO E STATUS LADO A LADO */}
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="type" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Tipo</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="income">Receita</SelectItem>
@@ -206,7 +288,7 @@ export function NewTransactionDialog() {
                 <FormField control={form.control} name="status" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-amber-500"/> Situação</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="paid">Pago / Recebido</SelectItem>
@@ -222,7 +304,7 @@ export function NewTransactionDialog() {
                  <FormField control={form.control} name="category" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Categoria</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger></FormControl>
                       <SelectContent>
                         {dbCategories.map((cat) => <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>)}
@@ -234,7 +316,7 @@ export function NewTransactionDialog() {
                 <FormField control={form.control} name="wallet_id" render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1.5"><Landmark className="w-3.5 h-3.5 text-emerald-600" /> Conta</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl><SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger></FormControl>
                       <SelectContent>
                         <SelectItem value="none">Nenhuma</SelectItem>
@@ -264,11 +346,12 @@ export function NewTransactionDialog() {
                     onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} 
                     className="cursor-pointer file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-emerald-50 file:text-emerald-700 w-full" 
                   />
+                  {receiptFile && <p className="text-[10px] text-emerald-600 font-medium">Anexado: {receiptFile.name}</p>}
                 </div>
               </div>
 
               <DialogFooter className="pt-2">
-                <Button type="submit" disabled={isLoading} className="w-full bg-slate-800 hover:bg-slate-900 dark:bg-emerald-600 dark:hover:bg-emerald-700">
+                <Button type="submit" disabled={isLoading || isScanning} className="w-full bg-slate-800 hover:bg-slate-900 dark:bg-emerald-600 dark:hover:bg-emerald-700">
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Salvar Lançamento
                 </Button>
               </DialogFooter>
@@ -276,7 +359,7 @@ export function NewTransactionDialog() {
           </Form>
         )}
 
-        {/* FORMULÁRIO: TRANSFERÊNCIA */}
+        {/* FORMULÁRIO: TRANSFERÊNCIA CONTINUA INTACTO... */}
         {mode === 'transfer' && (
            <Form {...formTransfer}>
              <form onSubmit={formTransfer.handleSubmit(onSubmitTransfer)} className="space-y-4 animate-in fade-in zoom-in-95 duration-200">

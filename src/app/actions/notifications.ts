@@ -2,9 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getBudgets, getBudgetsExpenses } from "@/app/actions/budgets";
-import { startOfDay, endOfDay } from "date-fns";
+import { endOfDay } from "date-fns";
 
-// 1. Definimos a interface para o Alerta
 export interface Alert {
   id: string;
   type: "warning" | "danger";
@@ -12,7 +11,6 @@ export interface Alert {
   message: string;
 }
 
-// Interfaces auxiliares para os dados do banco
 interface Budget {
   id: string;
   category: string;
@@ -33,22 +31,23 @@ export async function getActiveAlerts(): Promise<Alert[]> {
   const now = new Date();
   const monthStr = now.toISOString().slice(0, 7);
 
-  // 1. Alerta de Contas a Pagar (Hoje)
-  const { data: pendingToday } = await supabase
+  // 1. Alerta de Contas a Pagar (Hoje ou Atrasadas)
+  // CORREÇÃO: Removemos o .gte() para pegar qualquer conta pendente até o final do dia de hoje.
+  // Isso resolve problemas de fuso horário e avisa sobre contas esquecidas de ontem!
+  const { data: pendingTransactions } = await supabase
     .from("transactions")
     .select("description, amount")
     .eq("user_id", user.id)
     .eq("status", "pending")
-    .gte("created_at", startOfDay(now).toISOString())
     .lte("created_at", endOfDay(now).toISOString());
 
-  if (pendingToday && pendingToday.length > 0) {
-    const total = pendingToday.reduce((acc, t) => acc + Number(t.amount), 0);
+  if (pendingTransactions && pendingTransactions.length > 0) {
+    const total = pendingTransactions.reduce((acc, t) => acc + Number(t.amount), 0);
     alerts.push({
-      id: "pending-today",
+      id: "pending-alerts",
       type: "warning",
-      title: "Contas para hoje",
-      message: `Você tem ${pendingToday.length} conta(s) vencendo hoje, totalizando R$ ${total.toFixed(2)}.`,
+      title: "Contas Pendentes",
+      message: `Você tem ${pendingTransactions.length} conta(s) vencendo hoje ou atrasada(s), totalizando R$ ${total.toFixed(2)}.`,
     });
   }
 
@@ -58,7 +57,6 @@ export async function getActiveAlerts(): Promise<Alert[]> {
     getBudgetsExpenses(monthStr)
   ]);
 
-  // Tipagem explícita para evitar o 'any'
   const budgets = budgetsRaw as Budget[];
   const expenses = expensesRaw as Expense[];
 

@@ -1,225 +1,213 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
-import { ArrowLeft, Repeat, Trash2, Plus, Play, Pause, CheckCircle2 } from "lucide-react";
+import { Sidebar } from "@/components/sidebar";
+import { Topbar } from "@/components/topbar";
+import { Repeat, Plus, Trash2, CalendarDays, Landmark, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+
+import { getSubscriptions, createSubscription, deleteSubscription } from "@/app/actions/subscriptions";
 import { getCategories } from "@/app/actions/categories";
-import { getSubscriptions, createSubscription, deleteSubscription, toggleSubscriptionStatus } from "@/app/actions/subscriptions";
-import { createTransaction } from "@/app/actions/transactions";
+import { getWallets } from "@/app/actions/wallets";
 
 interface Subscription {
   id: string;
   name: string;
   amount: number;
   category: string;
-  billing_day: number;
-  status: 'active' | 'paused';
+  due_day: number;
+  wallets?: { name: string } | null;
 }
 
 export default function SubscriptionsPage() {
-  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const [wallets, setWallets] = useState<{id: string, name: string}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Form states
+  // Estados do formulário
   const [name, setName] = useState("");
   const [amountStr, setAmountStr] = useState("");
-  const [selectedCat, setSelectedCat] = useState("");
-  const [billingDay, setBillingDay] = useState("");
+  const [category, setCategory] = useState("");
+  const [walletId, setWalletId] = useState("none");
+  const [dueDayStr, setDueDayStr] = useState("");
 
   const loadData = useCallback(async () => {
-    const [cats, subs] = await Promise.all([
+    const [subsData, catsData, walletsData] = await Promise.all([
+      getSubscriptions(),
       getCategories(),
-      getSubscriptions()
+      getWallets()
     ]);
-    setCategories(cats || []);
-    setSubscriptions(subs as Subscription[]);
+    setSubscriptions(subsData || []);
+    setCategories(catsData || []);
+    setWallets(walletsData || []);
   }, []);
 
+  // CORREÇÃO DO ESLINT: Encapsulamos a chamada em uma função async interna
   useEffect(() => {
-    const fetchInit = async () => {
+    const init = async () => {
       await loadData();
     };
-    fetchInit();
+    init();
   }, [loadData]);
 
-  async function handleAdd(e: React.FormEvent) {
+  async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    const val = parseFloat(amountStr);
-    const day = parseInt(billingDay);
+    const amount = parseFloat(amountStr);
+    const dueDay = parseInt(dueDayStr);
 
-    if (!name || !selectedCat || isNaN(val) || isNaN(day) || day < 1 || day > 31) {
-      toast.error("Preencha todos os campos corretamente (Dia 1 a 31).");
-      return;
+    if (!name || isNaN(amount) || amount <= 0 || !category || isNaN(dueDay) || dueDay < 1 || dueDay > 31) {
+      return toast.error("Preencha todos os campos corretamente. O dia deve ser entre 1 e 31.");
     }
 
     setIsLoading(true);
-    const result = await createSubscription({ name, amount: val, category: selectedCat, billing_day: day });
-    
-    if (result?.error) toast.error(result.error);
-    else {
-      toast.success("Assinatura adicionada!");
-      setName(""); setAmountStr(""); setSelectedCat(""); setBillingDay("");
+    const result = await createSubscription({
+      name, amount, category, due_day: dueDay, wallet_id: walletId
+    });
+
+    if (result.error) {
+      toast.error(result.error);
+    } else {
+      toast.success("Assinatura criada! Ela será cobrada automaticamente.");
+      setName(""); setAmountStr(""); setCategory(""); setWalletId("none"); setDueDayStr("");
       await loadData();
     }
     setIsLoading(false);
-  }
-
-  async function handleToggle(id: string, status: string) {
-    await toggleSubscriptionStatus(id, status);
-    toast.success(status === 'active' ? "Assinatura pausada." : "Assinatura ativada.");
-    await loadData();
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover esta assinatura definitivamente?")) return;
-    await deleteSubscription(id);
-    toast.success("Assinatura removida.");
-    await loadData();
+    if (!confirm("Tem certeza que deseja cancelar esta assinatura?")) return;
+    const result = await deleteSubscription(id);
+    if (!result.error) {
+      toast.success("Assinatura removida.");
+      await loadData();
+    } else {
+      toast.error(result.error);
+    }
   }
 
-  // A Mágica: Converte a assinatura em uma transação do mês atual
-  async function handlePay(sub: Subscription) {
-    const today = new Date();
-    // Cria a data usando o dia de vencimento da assinatura no mês/ano atual
-    const billingDate = new Date(today.getFullYear(), today.getMonth(), sub.billing_day);
-    
-    setIsLoading(true);
-    const result = await createTransaction({
-      description: `[Assinatura] ${sub.name}`,
-      amount: sub.amount,
-      category: sub.category,
-      type: 'expense',
-      date: billingDate,
-    });
-
-    if (result?.error) toast.error(result.error);
-    else toast.success(`Despesa de ${sub.name} registrada no fluxo de caixa!`);
-    setIsLoading(false);
-  }
-
-  const formatBRL = (val: number) => 
-    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
-
-  const totalActive = subscriptions
-    .filter(s => s.status === 'active')
-    .reduce<number>((acc, curr) => acc + curr.amount, 0);
+  const formatCurrency = (val: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="text-2xl font-bold">Assinaturas e Custos Fixos</h1>
-        </div>
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0">
+        <Topbar />
+        <main className="p-6 md:p-8 flex-1 overflow-y-auto">
+          <div className="max-w-5xl mx-auto space-y-6">
+            
+            <div>
+              <h1 className="text-3xl font-bold text-slate-800 dark:text-white flex items-center gap-3">
+                <Repeat className="w-8 h-8 text-indigo-600" /> Assinaturas Fixas
+              </h1>
+              <p className="text-slate-500 mt-2">
+                Cadastre seus gastos recorrentes (Netflix, Aluguel, etc). O sistema lançará a despesa automaticamente como `Pendente` no dia do vencimento.
+              </p>
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          
-          {/* Lado Esquerdo: Resumo e Formulário */}
-          <div className="space-y-6 md:col-span-1">
-            <Card className="bg-emerald-600 text-white border-none">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-emerald-100 text-sm font-medium">Custos Fixos Ativos (Mês)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{formatBRL(totalActive)}</div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Nova Assinatura</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleAdd} className="space-y-4">
-                  <Input placeholder="Nome (ex: Netflix, Aluguel)" value={name} onChange={(e) => setName(e.target.value)} />
-                  <Input type="number" step="0.01" placeholder="Valor (R$)" value={amountStr} onChange={(e) => setAmountStr(e.target.value)} />
-                  
-                  <Select value={selectedCat} onValueChange={setSelectedCat}>
-                    <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
-                    <SelectContent>
-                      {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  
-                  <Input type="number" min="1" max="31" placeholder="Dia do vencimento (1 a 31)" value={billingDay} onChange={(e) => setBillingDay(e.target.value)} />
-                  
-                  <Button type="submit" disabled={isLoading} className="w-full bg-slate-800 hover:bg-slate-900 dark:bg-slate-200 dark:text-slate-900">
-                    <Plus className="w-4 h-4 mr-2" /> Adicionar
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Lado Direito: Lista de Assinaturas */}
-          <div className="md:col-span-2 space-y-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Repeat className="w-5 h-5 text-slate-500" /> Suas Assinaturas
-            </h3>
-
-            {subscriptions.length === 0 ? (
-              <div className="p-8 text-center border border-dashed rounded-xl text-slate-500 bg-white dark:bg-slate-900">
-                Você ainda não adicionou nenhum custo fixo.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {subscriptions.map((sub) => (
-                  <Card key={sub.id} className={`overflow-hidden transition-opacity ${sub.status === 'paused' ? 'opacity-60 grayscale' : ''}`}>
-                    <CardHeader className="p-4 pb-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-base">{sub.name}</CardTitle>
-                          <CardDescription className="text-xs mt-1">{sub.category}</CardDescription>
-                        </div>
-                        <Badge variant={sub.status === 'active' ? 'default' : 'secondary'} className={sub.status === 'active' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100' : ''}>
-                          {sub.status === 'active' ? 'Ativo' : 'Pausado'}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="flex justify-between items-end mt-2">
-                        <div className="text-xl font-bold">{formatBRL(sub.amount)}</div>
-                        <div className="text-xs text-slate-500 font-medium bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                          Vence dia {sub.billing_day}
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-2 bg-slate-50 dark:bg-slate-900/50 border-t flex justify-between">
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleToggle(sub.id, sub.status)} className="h-8 w-8 text-slate-500">
-                          {sub.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(sub.id)} className="h-8 w-8 text-red-400 hover:text-red-600">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
+              
+              {/* FORMULÁRIO */}
+              <div className="md:col-span-1">
+                <Card className="sticky top-6 border-indigo-100 dark:border-indigo-900/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+                      <Plus className="w-5 h-5" /> Nova Assinatura
+                    </CardTitle>
+                    <CardDescription>Configure o pagamento automático.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleCreate} className="space-y-4">
+                      <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Nome do Serviço</label>
+                        <Input placeholder="Ex: Spotify Premium" value={name} onChange={e => setName(e.target.value)} />
                       </div>
                       
-                      {/* Botão para lançar a despesa */}
-                      {sub.status === 'active' && (
-                        <Button size="sm" variant="outline" onClick={() => handlePay(sub)} disabled={isLoading} className="h-8 text-xs gap-1 border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-950/30">
-                          <CheckCircle2 className="w-3 h-3" /> Lançar Pagamento
-                        </Button>
-                      )}
-                    </CardFooter>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">Valor (R$)</label>
+                          <Input type="number" step="0.01" placeholder="29,90" value={amountStr} onChange={e => setAmountStr(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-slate-500 mb-1 block">Dia do Venc.</label>
+                          <Input type="number" min="1" max="31" placeholder="Ex: 15" value={dueDayStr} onChange={e => setDueDayStr(e.target.value)} />
+                        </div>
+                      </div>
 
-        </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Categoria</label>
+                        <Select value={category} onValueChange={setCategory}>
+                          <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                          <SelectContent>
+                            {categories.map(c => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-medium text-slate-500 mb-1 block">Conta de Saída</label>
+                        <Select value={walletId} onValueChange={setWalletId}>
+                          <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhuma específica</SelectItem>
+                            {wallets.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <Button type="submit" disabled={isLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white mt-2">
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                        Salvar Assinatura
+                      </Button>
+                    </form>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* LISTA DE ASSINATURAS */}
+              <div className="md:col-span-2 space-y-4">
+                {subscriptions.length === 0 ? (
+                  <div className="p-12 text-center border border-dashed rounded-xl text-slate-500 bg-white dark:bg-slate-900">
+                    <Repeat className="w-12 h-12 mx-auto mb-3 opacity-20 text-indigo-500" />
+                    Nenhuma assinatura cadastrada ainda.
+                  </div>
+                ) : (
+                  subscriptions.map(sub => (
+                    <Card key={sub.id} className="overflow-hidden hover:border-indigo-200 transition-colors">
+                      <CardContent className="p-5 flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <Repeat className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-800 dark:text-slate-200">{sub.name}</h3>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                              <span className="flex items-center gap-1"><CalendarDays className="w-3.5 h-3.5" /> Dia {sub.due_day}</span>
+                              <span className="flex items-center gap-1">• {sub.category}</span>
+                              {sub.wallets && <span className="flex items-center gap-1"><Landmark className="w-3.5 h-3.5" /> {sub.wallets.name}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-4">
+                          <span className="font-bold text-lg text-rose-600">{formatCurrency(sub.amount)}</span>
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(sub.id)} className="text-slate-400 hover:text-red-500 hover:bg-red-50">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );

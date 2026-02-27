@@ -38,53 +38,40 @@ export async function uploadReceipt(formData: FormData) {
   return { publicUrl };
 }
 
-export async function createTransaction(data: TransactionData) {
+export async function createTransaction(data: {
+  description: string;
+  amount: number;
+  type: "income" | "expense";
+  category: string;
+  date: Date;
+  wallet_id?: string;
+  receipt_url?: string;
+  installments?: number;
+  status?: "paid" | "pending"; // <-- 1. Adicionamos o status aqui
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) return { error: "Não autorizado" };
 
-  const installmentsCount = data.installments || 1;
+  // 2. Garantimos que o status seja enviado para o banco de dados!
+  const transactionToSave = {
+    user_id: user.id,
+    description: data.description,
+    amount: data.amount,
+    type: data.type,
+    category: data.category,
+    created_at: data.date,
+    wallet_id: data.wallet_id === "none" ? null : data.wallet_id,
+    receipt_url: data.receipt_url,
+    status: data.status || "paid", // <-- 3. O SEGREDO ESTÁ AQUI
+  };
 
-  // SE FOR COMPRA PARCELADA (Mais de 1 parcela)
-  if (installmentsCount > 1) {
-    const installmentAmount = data.amount / installmentsCount; // Divide o valor total
-    const transactionsToInsert = [];
+  const { error } = await supabase.from("transactions").insert([transactionToSave]);
 
-    for (let i = 1; i <= installmentsCount; i++) {
-      // Avança os meses corretamente de acordo com a parcela
-      const installmentDate = new Date(data.date);
-      installmentDate.setMonth(installmentDate.getMonth() + (i - 1));
-
-      transactionsToInsert.push({
-        user_id: user.id,
-        description: `${data.description} (${i}/${installmentsCount})`, // Ex: "iPhone (1/12)"
-        amount: installmentAmount,
-        type: data.type,
-        category: data.category,
-        created_at: installmentDate,
-        wallet_id: data.wallet_id,
-        receipt_url: data.receipt_url,
-      });
-    }
-
-    // Insere todas as parcelas de uma vez só no banco!
-    const { error } = await supabase.from("transactions").insert(transactionsToInsert);
-    if (error) return { error: "Erro ao criar transações parceladas." };
-
-  } else {
-    // SE FOR COMPRA NORMAL (À vista)
-    const { error } = await supabase.from("transactions").insert({
-      user_id: user.id,
-      description: data.description,
-      amount: data.amount,
-      type: data.type,
-      category: data.category,
-      created_at: data.date,
-      wallet_id: data.wallet_id,
-      receipt_url: data.receipt_url,
-    });
-    if (error) return { error: "Erro ao criar transação." };
+  if (error) {
+    console.error("Erro ao criar transação:", error);
+    return { error: "Erro ao criar transação." };
   }
 
   revalidatePath("/");
