@@ -79,7 +79,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <Text>Saldo {currentSearch || currentType || currentCategory ? '(Filtro)' : ''}</Text>
                 <Wallet className="w-5 h-5 text-blue-600 shrink-0" />
               </div>
-              <Metric className="mt-2 truncate">{formatCurrency(stats.balance)}</Metric>
+              {/* AS CLASSES MÁGICAS ENTRARAM AQUI 👇 */}
+              <Metric className="mt-2 truncate whitespace-nowrap tabular-nums tracking-tight">
+                {formatCurrency(stats.balance)}
+              </Metric>
             </Card>
 
             <Card className="decoration-top decoration-emerald-500 border-l-4 border-l-emerald-500 shadow-sm">
@@ -87,7 +90,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <Text>Receitas</Text>
                 <TrendingUp className="w-5 h-5 text-emerald-600 shrink-0" />
               </div>
-              <Metric className="mt-2 text-emerald-600 truncate">{formatCurrency(stats.income)}</Metric>
+              <Metric className="mt-2 text-emerald-600 truncate whitespace-nowrap tabular-nums tracking-tight">
+                {formatCurrency(stats.income)}
+              </Metric>
             </Card>
 
             <Card className="decoration-top decoration-rose-500 border-l-4 border-l-rose-500 shadow-sm">
@@ -95,7 +100,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <Text>Despesas</Text>
                 <TrendingDown className="w-5 h-5 text-rose-600 shrink-0" />
               </div>
-              <Metric className="mt-2 text-rose-600 truncate">{formatCurrency(stats.expense)}</Metric>
+              <Metric className="mt-2 text-rose-600 truncate whitespace-nowrap tabular-nums tracking-tight">
+                {formatCurrency(stats.expense)}
+              </Metric>
             </Card>
 
             <Card className="decoration-top decoration-indigo-500 border-l-4 border-l-indigo-500 shadow-sm">
@@ -103,7 +110,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <Text>Nos Cofres</Text>
                 <PiggyBank className="w-5 h-5 text-indigo-600 shrink-0" />
               </div>
-              <Metric className="mt-2 text-indigo-600 truncate">{formatCurrency(stats.saved || 0)}</Metric>
+              <Metric className="mt-2 text-indigo-600 truncate whitespace-nowrap tabular-nums tracking-tight">
+                {formatCurrency(stats.saved || 0)}
+              </Metric>
             </Card>
           </div>
 
