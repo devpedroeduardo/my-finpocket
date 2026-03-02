@@ -9,13 +9,13 @@ import { MonthSelector } from "@/components/month-selector";
 import { SearchInput } from "@/components/search-input";
 import { TransactionFilters } from "@/components/transaction-filters";
 import { ExportButton } from "@/components/export-button";
+import { BottomNav } from "@/components/bottom-nav";
 
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
 import { AIAdvisor } from "@/components/ai-advisor";
-
-// IMPORTANDO O NOVO GRÁFICO 👇
 import { CashFlowChart } from "@/components/cash-flow-chart";
+import { Footer } from "@/components/footer";
 
 export const dynamic = "force-dynamic";
 
@@ -49,100 +49,128 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }));
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 overflow-x-hidden">
       
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      {/* Adicionado o 'relative' na div principal para ancorar bem o menu */}
+      <div className="flex-1 flex flex-col min-w-0 w-full overflow-hidden relative">
         <Topbar />
 
-        <main className="p-6 md:p-8 flex-1 overflow-y-auto space-y-8">
+        {/* Adicionado pb-20 (padding-bottom) para o conteúdo não ficar atrás do menu inferior */}
+        <main className="p-4 md:p-6 lg:p-8 pb-20 flex-1 overflow-y-auto space-y-6 w-full max-w-full">
           
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
+          {/* TÍTULO E BOTÃO */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
               Visão Geral
             </h1>
-            <NewTransactionDialog />
+            <div className="w-full sm:w-auto">
+              <NewTransactionDialog />
+            </div>
           </div>
 
           <AIAdvisor />
           
-          {/* MUDAMOS PARA 4 COLUNAS: grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 👇 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* CARDS RESPONSIVOS: 1 coluna no celular, 2 no tablet, 4 no PC */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
             <Card className="decoration-top decoration-blue-500 border-l-4 border-l-blue-500 shadow-sm">
               <div className="flex items-center justify-between">
-                <Text>Saldo {currentSearch || currentType || currentCategory ? '(Filtrado)' : ''}</Text>
-                <Wallet className="w-5 h-5 text-blue-600" />
+                <Text>Saldo {currentSearch || currentType || currentCategory ? '(Filtro)' : ''}</Text>
+                <Wallet className="w-5 h-5 text-blue-600 shrink-0" />
               </div>
-              <Metric className="mt-2">{formatCurrency(stats.balance)}</Metric>
+              <Metric className="mt-2 truncate">{formatCurrency(stats.balance)}</Metric>
             </Card>
 
             <Card className="decoration-top decoration-emerald-500 border-l-4 border-l-emerald-500 shadow-sm">
               <div className="flex items-center justify-between">
                 <Text>Receitas</Text>
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
+                <TrendingUp className="w-5 h-5 text-emerald-600 shrink-0" />
               </div>
-              <Metric className="mt-2 text-emerald-600">{formatCurrency(stats.income)}</Metric>
+              <Metric className="mt-2 text-emerald-600 truncate">{formatCurrency(stats.income)}</Metric>
             </Card>
 
             <Card className="decoration-top decoration-rose-500 border-l-4 border-l-rose-500 shadow-sm">
               <div className="flex items-center justify-between">
                 <Text>Despesas</Text>
-                <TrendingDown className="w-5 h-5 text-rose-600" />
+                <TrendingDown className="w-5 h-5 text-rose-600 shrink-0" />
               </div>
-              <Metric className="mt-2 text-rose-600">{formatCurrency(stats.expense)}</Metric>
+              <Metric className="mt-2 text-rose-600 truncate">{formatCurrency(stats.expense)}</Metric>
             </Card>
 
-            {/* O NOVO CARD DE DINHEIRO GUARDADO 👇 */}
             <Card className="decoration-top decoration-indigo-500 border-l-4 border-l-indigo-500 shadow-sm">
               <div className="flex items-center justify-between">
                 <Text>Nos Cofres</Text>
-                <PiggyBank className="w-5 h-5 text-indigo-600" />
+                <PiggyBank className="w-5 h-5 text-indigo-600 shrink-0" />
               </div>
-              <Metric className="mt-2 text-indigo-600">{formatCurrency(stats.saved || 0)}</Metric>
+              <Metric className="mt-2 text-indigo-600 truncate">{formatCurrency(stats.saved || 0)}</Metric>
             </Card>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* ÁREA DE GRÁFICOS E TABELAS */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
             
-            {/* LADO ESQUERDO: TABELA DE MOVIMENTAÇÕES */}
-            <div className="xl:col-span-2 space-y-4">
-              <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border shadow-sm space-y-5">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 dark:border-slate-800 pb-4 gap-4">
+            {/* LADO ESQUERDO: TABELA */}
+            <div className="xl:col-span-2 space-y-4 w-full">
+              <div className="bg-white dark:bg-slate-900 p-4 md:p-5 rounded-xl border shadow-sm space-y-4 w-full">
+                
+                {/* Cabeçalho da Tabela */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 dark:border-slate-800 pb-4 gap-3 w-full">
                   <h2 className="text-lg font-bold text-slate-800 dark:text-white">Últimas Movimentações</h2>
-                  <Suspense fallback={<div className="w-[150px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
+                  <Suspense fallback={<div className="w-full sm:w-[150px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
                     <MonthSelector /> 
                   </Suspense>
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center">
-                  <Suspense fallback={<div className="w-full md:w-64 h-10 bg-slate-100 animate-pulse rounded-md" />}>
-                    <SearchInput />
-                  </Suspense>
+                {/* Filtros da Tabela (Responsividade Extrema) */}
+                <div className="flex flex-col xl:flex-row gap-4 justify-between w-full">
                   
-                  <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                    <Suspense fallback={<div className="w-full sm:w-[300px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
+                  {/* Barra de Pesquisa */}
+                  <div className="w-full xl:max-w-md flex-1">
+                    <Suspense fallback={<div className="w-full h-10 bg-slate-100 animate-pulse rounded-md" />}>
+                      <SearchInput />
+                    </Suspense>
+                  </div>
+                  
+                  {/* Selects e Botão de Exportar */}
+                  <div className="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto">
+                    <Suspense fallback={<div className="w-full md:w-[320px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
                       <TransactionFilters />
                     </Suspense>
-                    <ExportButton data={transactions as Transaction[]} />
+                    <div className="w-full md:w-auto">
+                      <ExportButton data={transactions as Transaction[]} />
+                    </div>
                   </div>
+
                 </div>
               </div>
 
-              <TransactionList data={transactions as Transaction[]} />
+              {/* Tabela de Transações (Com scroll horizontal se necessário) */}
+              <div className="w-full overflow-x-auto pb-2">
+                <TransactionList data={transactions as Transaction[]} />
+              </div>
             </div>
             
             {/* LADO DIREITO: GRÁFICOS */}
-            <div className="xl:col-span-1 space-y-6">
-              {/* Gráfico Redondo de Despesas */}
-              <ExpensesChart data={formattedCategoryData} />
-              
-              {/* NOVO GRÁFICO DE BARRAS DE FLUXO DE CAIXA 👇 */}
-              <CashFlowChart income={stats.income} expense={stats.expense} />
+            <div className="xl:col-span-1 space-y-6 w-full">
+              <div className="w-full overflow-hidden">
+                <ExpensesChart data={formattedCategoryData} />
+              </div>
+              <div className="w-full overflow-hidden">
+                <CashFlowChart income={stats.income} expense={stats.expense} />
+              </div>
             </div>
-
           </div>
+        {/* ADICIONE O FOOTER AQUI 👇 */}
+          <div className="pt-8">
+            <Footer />
+          </div>
+
         </main>
+
+        {/* COMPONENTE ADICIONADO AQUI: Fica fixo no rodapé apenas no celular */}
+        <BottomNav />
+
       </div>
     </div>
   );

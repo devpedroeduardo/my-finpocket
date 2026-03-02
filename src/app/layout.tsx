@@ -1,20 +1,30 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next"; // <--- 1. Importação do Viewport adicionada
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeProvider } from "@/components/theme-provider"; // <--- 1. Importe aqui
+import { ThemeProvider } from "@/components/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
+
+// 2. CONFIGURAÇÃO MOBILE-FIRST: Trava o zoom da tela e define a cor da barra do celular
+export const viewport: Viewport = {
+  themeColor: "#4f46e5",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, 
+};
 
 export const metadata: Metadata = {
   title: "MyFinPocket",
   description: "Seu controle financeiro pessoal",
+  manifest: "/manifest.json", // <--- 3. A IDENTIDADE DO APP: Aponta para o seu PWA
   icons: {
     icon: [
-      { url: '/favicon.svg', type: 'image/svg+xml' }, // <--- O MÁGICO AQUI
+      { url: '/favicon.svg', type: 'image/svg+xml' }, 
     ],
     apple: [
-      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }, 
+      { url: '/favicon.svg', type: 'image/svg+xml'}, 
     ],
   },
 };
@@ -26,10 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning> 
-      {/* ADICIONE suppressHydrationWarning NA TAG HTML ACIMA PARA EVITAR ERROS DE TEMA */}
-      
       <body className={inter.className}>
-        {/* 2. Envolva o conteúdo com o ThemeProvider */}
         <ThemeProvider
             attribute="class"
             defaultTheme="system"
