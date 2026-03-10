@@ -10,6 +10,7 @@ import { SearchInput } from "@/components/search-input";
 import { TransactionFilters } from "@/components/transaction-filters";
 import { ExportButton } from "@/components/export-button";
 import { BottomNav } from "@/components/bottom-nav";
+import { PixBatchDialog } from "@/components/pix-batch-dialog";
 
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
@@ -65,7 +66,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
               Visão Geral
             </h1>
-            <div className="w-full sm:w-auto">
+            <div className="flex w-full sm:w-auto gap-3">
+              {/* CORREÇÃO DO ESLINT: Usando o tipo Transaction[] no lugar de any */}
+              <PixBatchDialog transactions={transactions as Transaction[]} />
               <NewTransactionDialog />
             </div>
           </div>
@@ -79,11 +82,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <Text>Saldo {currentSearch || currentType || currentCategory ? '(Filtro)' : ''}</Text>
                 <Wallet className="w-5 h-5 text-blue-600 shrink-0" />
               </div>
-              {/* AS CLASSES MÁGICAS ENTRARAM AQUI 👇 */}
               <Metric className="mt-2 truncate whitespace-nowrap tabular-nums tracking-tight">
                 {formatCurrency(stats.balance)}
               </Metric>
             </Card>
+
+            {/* CORREÇÃO DO TERMINAL: A tag <PixBatchPanel /> que estava solta aqui foi removida! */}
 
             <Card className="decoration-top decoration-emerald-500 border-l-4 border-l-emerald-500 shadow-sm">
               <div className="flex items-center justify-between">
