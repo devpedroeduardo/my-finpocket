@@ -55,9 +55,10 @@ export function Topbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           <NotificationsDropdown />
 
+          {/* CORREÇÃO AQUI: Removidas as classes 'hidden sm:block' */}
           <Link 
             href="/profile" 
-            className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors hidden sm:block" 
+            className="p-2 text-slate-500 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-colors block" 
             title="Meu Perfil"
           >
             <User className="w-5 h-5" />
