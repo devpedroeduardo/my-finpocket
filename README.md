@@ -5,10 +5,11 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
 
-O **MyFinPocket** é um assistente financeiro inteligente e moderno, focado em dar ao usuário controle total sobre suas finanças. Construído com uma arquitetura de Software como Serviço (SaaS), ele vai muito além de um simples rastreador de despesas: conta com inteligência artificial para análises, sistema avançado de pagamentos em lote, segurança de nível corporativo e tudo isso empacotado como um **Progressive Web App (PWA)** instalável.
+O **MyFinPocket** é um assistente financeiro inteligente e moderno, focado em dar ao usuário controle total sobre suas finanças. Construído com uma arquitetura de Software como Serviço (SaaS), ele vai muito além de um simples rastreador de despesas: conta com inteligência artificial para análises, automação de conciliação de faturas em PDF, sistema avançado de pagamentos em lote, segurança de nível corporativo e tudo isso empacotado como um **Progressive Web App (PWA)** instalável.
 
 ## ✨ Funcionalidades Principais
 
+* 📄 **Leitura e Conciliação de Faturas (PDF):** Sistema inteligente de upload e leitura de extratos/faturas em PDF, automatizando a entrada de dados e facilitando a conciliação bancária do usuário.
 * 💳 **Pagamento em Lote via PIX:** Selecione múltiplas despesas pendentes, gere um QR Code dinâmico (Copia e Cola) via API própria e dê baixa automática em todas as contas simultaneamente.
 * 📈 **Dashboard Dinâmico e Interativo:** Gráficos avançados criados com Tremor, incluindo um **Gráfico de Evolução de Saldo Diário** inteligente que altera a sua cor (Verde/Vermelho) automaticamente com base na saúde do fluxo de caixa.
 * 🔍 **Filtros Avançados via URL:** Sistema de busca e filtragem de transações (por tipo, status e mês) persistidos na URL via `searchParams`, permitindo navegação fluida sem recarregar a página (com `router.refresh()`).
@@ -22,6 +23,7 @@ O **MyFinPocket** é um assistente financeiro inteligente e moderno, focado em d
 * **Frontend:** Next.js (App Router), React, TypeScript.
 * **Estilização & UI:** Tailwind CSS, shadcn/ui, Tremor (Gráficos), Lucide React (Ícones).
 * **Backend & BaaS:** Supabase, `@supabase/ssr` (Gerenciamento de Sessão Seguro), Route Handlers (API do Next.js).
+* **Automação & Processamento:** Leitura de PDF e estruturação de dados.
 * **Ferramentas Adicionais:** `react-qr-code` (Geração de PIX), `@ducanh2912/next-pwa`.
 * **Inteligência Artificial:** Integração com LLM (Google Gemini).
 
@@ -72,8 +74,7 @@ Acesse [http://localhost:3000](http://localhost:3000) no seu navegador. O sistem
 *Nota: Para testar a funcionalidade PWA (instalação do app), é necessário gerar a build de produção rodando `npm run build` e depois `npm run start`.*
 
 ## 🛣️ Próximos Passos (Roadmap)
-- [ ] Integração com n8n para automação de conciliação bancária de extratos via Webhooks.
-- [ ] Implementação de upload e leitura de PDF de faturas.
+- [ ] Integração final da conciliação bancária de extratos com fluxos via Webhooks no n8n.
 
 ---
 
