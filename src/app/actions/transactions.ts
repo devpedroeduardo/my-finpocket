@@ -25,7 +25,6 @@ const transactionSchema = z.object({
   description: z.string().min(2, "A descrição deve ter pelo menos 2 caracteres.").max(100, "Descrição muito longa."),
   amount: z.number().positive("O valor deve ser estritamente maior que zero."),
   
-  // CORREÇÃO: Usando apenas "message" que é o padrão exigido por essa versão
   type: z.enum(["income", "expense"], { 
     message: "O tipo deve ser receita ou despesa." 
   }),
@@ -46,9 +45,6 @@ const transferSchema = z.object({
   to_wallet_id: z.string().min(1, "Conta de destino é obrigatória."),
 });
 
-// ============================================================================
-// ACTIONS
-// ============================================================================
 
 export async function uploadReceipt(formData: FormData) {
   const supabase = await createClient();
@@ -74,7 +70,6 @@ export async function uploadReceipt(formData: FormData) {
   return { publicUrl };
 }
 
-// CORREÇÃO 3: Trocamos 'any' por 'unknown' para agradar o ESLint de forma segura
 export async function createTransaction(data: unknown) { 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -83,7 +78,6 @@ export async function createTransaction(data: unknown) {
   const validated = transactionSchema.safeParse(data);
   
   if (!validated.success) {
-    // CORREÇÃO 2: Trocamos .errors por .issues
     return { error: validated.error.issues[0].message };
   }
 
@@ -117,7 +111,6 @@ export async function updateTransaction(data: unknown) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Não autorizado" };
   
-  // Como 'data' é unknown, checamos se é um objeto e tem ID antes de prosseguir
   if (!data || typeof data !== 'object' || !('id' in data)) {
     return { error: "ID não fornecido." };
   }

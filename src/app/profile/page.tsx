@@ -38,7 +38,6 @@ export default function ProfilePage() {
     loadData();
   }, []);
 
-  // Cria um preview da imagem antes de salvar
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -63,7 +62,6 @@ export default function ProfilePage() {
       toast.success("Perfil atualizado com sucesso!");
       (document.getElementById("password") as HTMLInputElement).value = "";
       
-      // Atualiza a foto atual se houver novo preview
       if (avatarPreview) {
         setAvatarUrl(avatarPreview);
         setAvatarPreview(null);
@@ -81,7 +79,6 @@ export default function ProfilePage() {
     );
   }
 
-  // Função para pegar as iniciais do nome para o Avatar Fallback
   const getInitials = (name: string) => name ? name.substring(0, 2).toUpperCase() : "US";
 
   return (
@@ -104,7 +101,6 @@ export default function ProfilePage() {
             <TabsTrigger value="security" className="gap-2"><Lock className="w-4 h-4"/> Segurança</TabsTrigger>
           </TabsList>
 
-          {/* ABA 1: DADOS GERAIS */}
           <TabsContent value="general">
             <form onSubmit={handleSubmit}>
               <Card>
@@ -116,7 +112,6 @@ export default function ProfilePage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   
-                  {/* Foto de Perfil */}
                   <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-dashed">
                     <Avatar className="w-24 h-24 border-4 border-white dark:border-slate-800 shadow-sm">
                       <AvatarImage src={avatarPreview || avatarUrl} className="object-cover" />
@@ -179,7 +174,6 @@ export default function ProfilePage() {
             </form>
           </TabsContent>
 
-          {/* ABA 2: PREFERÊNCIAS (Mock visual por enquanto) */}
           <TabsContent value="preferences">
             <Card>
               <CardHeader>

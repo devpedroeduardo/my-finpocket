@@ -3,21 +3,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
-import { Target, Plus, Trash2, TrendingUp, CheckCircle2, AlertCircle, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Target, Plus, Trash2, CheckCircle2, AlertCircle, Wallet, PiggyBank, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-
-// Importando as novas funções do nosso backend (Cofres)
 import { getGoals, createGoal, updateGoalAmount, deleteGoal } from "@/app/actions/goals";
 import { getBudgets, upsertBudget, deleteBudget, getBudgetsExpenses } from "@/app/actions/budgets";
 
 interface Goal {
   id: string; 
-  name: string; // Atualizado para corresponder ao BD
+  name: string; 
   target_amount: number; 
   current_amount: number;
 }
@@ -35,23 +33,19 @@ export default function PlanningPage() {
   const [activeTab, setActiveTab] = useState<'objectives' | 'spending'>('objectives');
   const [isLoading, setIsLoading] = useState(false);
 
-  // --- ESTADOS: OBJETIVOS (CAIXINHAS) ---
   const [goals, setGoals] = useState<Goal[]>([]);
   const [newTitle, setNewTitle] = useState("");
   const [newTargetStr, setNewTargetStr] = useState("");
-  const [amountInputs, setAmountInputs] = useState<Record<string, string>>({}); // Valor do input de cada caixinha
+  const [amountInputs, setAmountInputs] = useState<Record<string, string>>({});
 
-  // --- ESTADOS: LIMITES DE GASTOS ---
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [newBudgetCatch, setNewBudgetCatch] = useState("");
   const [newBudgetAmountStr, setNewBudgetAmountStr] = useState("");
 
   const loadAllData = useCallback(async () => {
-    // 1. Carrega as Caixinhas
     const goalsData = await getGoals();
     setGoals(goalsData || []);
 
-    // 2. Carrega os Limites
     const currentMonthStr = new Date().toISOString().slice(0, 7); 
     const [budgetsData, expensesData] = await Promise.all([
       getBudgets(),
@@ -80,9 +74,6 @@ export default function PlanningPage() {
     init();
   }, [loadAllData]);
 
-  // =====================================
-  // FUNÇÕES DE OBJETIVOS (CAIXINHAS)
-  // =====================================
   async function handleCreateGoal(e: React.FormEvent) {
     e.preventDefault();
     const target = parseFloat(newTargetStr);
@@ -102,7 +93,6 @@ export default function PlanningPage() {
     setIsLoading(false);
   }
 
-  // Função unificada para Guardar (deposit) ou Resgatar (withdraw)
   async function handleGoalTransaction(id: string, type: 'deposit' | 'withdraw') {
     const amountStr = amountInputs[id];
     const amount = parseFloat(amountStr);
@@ -111,7 +101,6 @@ export default function PlanningPage() {
       return toast.error("Informe um valor válido para movimentar.");
     }
 
-    // Verifica se está tentando resgatar mais do que tem
     const goal = goals.find(g => g.id === id);
     if (type === 'withdraw' && goal && amount > goal.current_amount) {
       return toast.error("Você não pode resgatar mais do que guardou nesta caixinha.");
@@ -126,7 +115,7 @@ export default function PlanningPage() {
       toast.error(result.error, { id: toastId });
     } else { 
       toast.success(type === 'deposit' ? "Dinheiro guardado! 🎉" : "Dinheiro resgatado com sucesso.", { id: toastId }); 
-      setAmountInputs(prev => ({ ...prev, [id]: "" })); // Limpa o input
+      setAmountInputs(prev => ({ ...prev, [id]: "" }));
       await loadAllData(); 
     }
     setIsLoading(false);
@@ -152,9 +141,6 @@ export default function PlanningPage() {
     setIsLoading(false);
   }
 
-  // =====================================
-  // FUNÇÕES DE LIMITES DE GASTOS (MANTIDAS)
-  // =====================================
   async function handleCreateBudget(e: React.FormEvent) {
     e.preventDefault();
     const amount = parseFloat(newBudgetAmountStr);
@@ -206,10 +192,8 @@ export default function PlanningPage() {
               </button>
             </div>
 
-            {/* ABA: OBJETIVOS (CAIXINHAS) */}
             {activeTab === 'objectives' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
-                {/* FORMULÁRIO DE CRIAR COFRE */}
                 <div className="md:col-span-1">
                   <Card className="sticky top-6 border-blue-100 dark:border-blue-900/30">
                     <CardHeader>
@@ -234,7 +218,6 @@ export default function PlanningPage() {
                   </Card>
                 </div>
 
-                {/* LISTA DE COFRES */}
                 <div className="md:col-span-2 space-y-4">
                   {goals.length === 0 ? (
                      <div className="p-12 text-center border border-dashed rounded-xl text-slate-500 bg-white dark:bg-slate-900">
@@ -283,7 +266,6 @@ export default function PlanningPage() {
                               />
                             </div>
                             
-                            {/* ÁREA DE INTERAÇÃO (DEPOSITAR / RESGATAR) */}
                             <div className="flex items-center gap-3 pt-5 border-t border-slate-100 dark:border-slate-800">
                               <div className="relative flex-1 max-w-[200px]">
                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">R$</span>
@@ -322,11 +304,8 @@ export default function PlanningPage() {
                 </div>
               </div>
             )}
-
-            {/* ABA: LIMITES DE GASTOS (MANTIDA IGUAL AO SEU CÓDIGO) */}
             {activeTab === 'spending' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
-                {/* ... (Todo o seu código de Limites de Gastos continua idêntico aqui) ... */}
                 <div className="md:col-span-1">
                   <Card className="sticky top-6">
                     <CardHeader>

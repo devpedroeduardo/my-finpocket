@@ -18,9 +18,7 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             );
           } catch {
-            // O "try/catch" aqui é necessário porque Server Components
-            // não podem setar cookies (apenas Server Actions/Middleware),
-            // mas o createServerClient precisa do método existir.
+
           }
         },
       },

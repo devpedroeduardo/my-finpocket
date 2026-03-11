@@ -31,9 +31,6 @@ export async function getActiveAlerts(): Promise<Alert[]> {
   const now = new Date();
   const monthStr = now.toISOString().slice(0, 7);
 
-  // 1. Alerta de Contas a Pagar (Hoje ou Atrasadas)
-  // CORREÇÃO: Removemos o .gte() para pegar qualquer conta pendente até o final do dia de hoje.
-  // Isso resolve problemas de fuso horário e avisa sobre contas esquecidas de ontem!
   const { data: pendingTransactions } = await supabase
     .from("transactions")
     .select("description, amount")
@@ -51,7 +48,6 @@ export async function getActiveAlerts(): Promise<Alert[]> {
     });
   }
 
-  // 2. Alerta de Orçamento Estourado
   const [budgetsRaw, expensesRaw] = await Promise.all([
     getBudgets(),
     getBudgetsExpenses(monthStr)

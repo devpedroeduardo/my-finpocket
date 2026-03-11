@@ -1,4 +1,4 @@
-"use client"; // O Next.js exige que telas de erro sejam Client Components
+"use client";
 
 import { useEffect } from "react";
 import Link from "next/link";
@@ -13,7 +13,6 @@ export default function GlobalError({
   reset: () => void;
 }) {
   
-  // Efeito sênior: Registra o erro no console (ou num serviço como Sentry) para você debugar depois
   useEffect(() => {
     console.error("Erro capturado pelo MyFinPocket:", error);
   }, [error]);
@@ -21,7 +20,6 @@ export default function GlobalError({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 text-center z-50">
       
-      {/* Ícone de alerta amigável */}
       <div className="w-20 h-20 bg-rose-100 dark:bg-rose-500/20 rounded-full flex items-center justify-center mb-6 animate-pulse">
         <ServerCrash className="w-10 h-10 text-rose-600 dark:text-rose-500" />
       </div>
@@ -34,10 +32,8 @@ export default function GlobalError({
         Não foi possível carregar as informações no momento. Isso geralmente acontece por uma oscilação na internet ou no banco de dados.
       </p>
       
-      {/* Botões de Ação */}
       <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm mx-auto sm:max-w-none justify-center">
         
-        {/* O botão 'reset' tenta recarregar a rota atual sem que o usuário perca o estado do app */}
         <Button 
           onClick={() => reset()} 
           className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white w-full sm:w-auto h-11"

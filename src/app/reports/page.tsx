@@ -9,10 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage() {
   const evolutionData = await getMonthlyEvolution();
 
-  // CORREÇÃO: Usando reduce() para criar o array sem mutar variáveis soltas
   const areaChartData = evolutionData.reduce((acc, item) => {
     const balance = item.Receitas - item.Despesas;
-    // Pega o acumulado do mês anterior (se for o primeiro mês, é 0)
     const previousAccumulated = acc.length > 0 ? acc[acc.length - 1]["Patrimônio Acumulado"] : 0;
     
     acc.push({

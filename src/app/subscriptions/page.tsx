@@ -29,7 +29,6 @@ export default function SubscriptionsPage() {
   const [wallets, setWallets] = useState<{id: string, name: string}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Estados do formulário
   const [name, setName] = useState("");
   const [amountStr, setAmountStr] = useState("");
   const [category, setCategory] = useState("");
@@ -47,7 +46,6 @@ export default function SubscriptionsPage() {
     setWallets(walletsData || []);
   }, []);
 
-  // CORREÇÃO DO ESLINT: Encapsulamos a chamada em uma função async interna
   useEffect(() => {
     const init = async () => {
       await loadData();
@@ -111,7 +109,6 @@ export default function SubscriptionsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in">
               
-              {/* FORMULÁRIO */}
               <div className="md:col-span-1">
                 <Card className="sticky top-6 border-indigo-100 dark:border-indigo-900/30">
                   <CardHeader>
@@ -168,7 +165,6 @@ export default function SubscriptionsPage() {
                 </Card>
               </div>
 
-              {/* LISTA DE ASSINATURAS */}
               <div className="md:col-span-2 space-y-4">
                 {subscriptions.length === 0 ? (
                   <div className="p-12 text-center border border-dashed rounded-xl text-slate-500 bg-white dark:bg-slate-900">

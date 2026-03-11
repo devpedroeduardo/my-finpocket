@@ -9,7 +9,6 @@ export async function getMonthlyEvolution() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Pega a data de 5 meses atrás (para totalizar 6 meses com o atual)
   const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5));
   const now = endOfMonth(new Date());
 
@@ -22,9 +21,7 @@ export async function getMonthlyEvolution() {
 
   if (!transactions) return [];
 
-  // Agrupa os valores por mês
   const grouped = transactions.reduce((acc, tx) => {
-    // Ex: "Fev 2026"
     const monthStr = format(new Date(tx.created_at), "MMM yyyy", { locale: ptBR });
     
     if (!acc[monthStr]) {
@@ -40,11 +37,10 @@ export async function getMonthlyEvolution() {
     return acc;
   }, {} as Record<string, { month: string, Receitas: number, Despesas: number }>);
 
-  // Garante que os meses apareçam na ordem cronológica correta (do mais antigo pro mais novo)
+
   const result = [];
   for (let i = 5; i >= 0; i--) {
     const m = format(subMonths(new Date(), i), "MMM yyyy", { locale: ptBR });
-    // Se não teve transação no mês, preenche com zero
     result.push(grouped[m] || { month: m, Receitas: 0, Despesas: 0 });
   }
 

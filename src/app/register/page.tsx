@@ -26,14 +26,12 @@ export default function RegisterPage() {
       setError(result.error);
       setIsLoading(false);
     }
-    // Se der sucesso, o redirect acontece automaticamente
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
       <div className="w-full max-w-md space-y-6">
         
-        {/* Logo */}
         <div className="flex flex-col items-center space-y-2 text-center">
           <div className="p-3 bg-emerald-100 rounded-full">
             <Wallet className="w-8 h-8 text-emerald-600" />
@@ -42,7 +40,6 @@ export default function RegisterPage() {
           <p className="text-slate-500">Crie sua conta gratuitamente.</p>
         </div>
 
-        {/* ALERTA DE ERRO */}
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -66,7 +63,6 @@ export default function RegisterPage() {
                 <Input id="name" name="name" placeholder="Ex: Pedro Silva" required />
               </div>
 
-              {/* CAMPO NOVO: TELEFONE */}
               <div className="space-y-2">
                 <Label htmlFor="phone">Telefone / WhatsApp</Label>
                 <Input id="phone" name="phone" placeholder="(11) 99999-9999" required />

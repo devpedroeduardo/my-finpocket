@@ -16,7 +16,6 @@ export async function generateFinancialAdvice(monthStr?: string, focus: 'general
 
     const categoryText = categories.map(c => `${c.name}: R$ ${c.value}`).join(", ");
 
-    // Define o que a IA deve fazer baseado no botão que o usuário clicou
     let focusInstruction = "Faça uma análise rápida e encorajadora de no máximo 2 parágrafos curtos sobre a saúde financeira geral do mês.";
     
     if (focus === 'savings') {

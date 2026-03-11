@@ -3,10 +3,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { startOfMonth, endOfMonth } from "date-fns";
 
-// MÁGICA DE DATAS: Garante que as consultas do mês ocorram de forma segura sem falhas de fuso horário
 function getMonthBounds(monthStr?: string) {
   const targetMonth = monthStr || new Date().toISOString().slice(0, 7);
-  // Usa o meio-dia como âncora para garantir que o dia 1 não vire dia 31 do mês anterior
   const baseDate = new Date(`${targetMonth}-01T12:00:00`); 
   
   return {
@@ -21,8 +19,6 @@ export async function getDashboardStats(month?: string, search?: string) {
   if (!user) return { balance: 0, income: 0, expense: 0, saved: 0 };
 
   const { startDate, endDate } = getMonthBounds(month);
-
-  // 1. Busca as transações do mês para calcular Receitas e Despesas
   let query = supabase.from("transactions").select("amount, type")
     .eq("user_id", user.id)
     .gte("created_at", startDate)
@@ -36,7 +32,6 @@ export async function getDashboardStats(month?: string, search?: string) {
   const income = data.filter(t => t.type === 'income').reduce((acc, curr) => acc + Number(curr.amount), 0);
   const expense = data.filter(t => t.type === 'expense').reduce((acc, t) => acc + Number(t.amount), 0);
 
-  // 2. O TRUQUE MÁGICO DAS CAIXINHAS: Busca todo o dinheiro guardado nos cofres
   const { data: goalsData } = await supabase
     .from("goals")
     .select("current_amount")
@@ -44,12 +39,11 @@ export async function getDashboardStats(month?: string, search?: string) {
 
   const totalSaved = (goalsData || []).reduce((acc, goal) => acc + Number(goal.current_amount), 0);
 
-  // 3. Retorna o saldo subtraindo o que está bloqueado nos cofres
   return { 
     balance: (income - expense) - totalSaved, 
     income, 
     expense,
-    saved: totalSaved // Enviamos o total guardado caso você queira mostrar no Dashboard no futuro!
+    saved: totalSaved 
   };
 }
 

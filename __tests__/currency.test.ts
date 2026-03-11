@@ -4,7 +4,6 @@ describe('Utilitários Financeiros (currency.ts)', () => {
   
   it('deve converter 1500 centavos perfeitamente para R$ 15,00', () => {
     // 1. Executa a função
-    // O .replace é um truquezinho porque o JavaScript moderno coloca um "espaço invisível" (NBSP) entre o R$ e o número. Isso padroniza para um espaço normal.
     const resultado = formatCentsToReal(1500).replace(/\s/g, ' ');
 
     // 2. Afirma o resultado

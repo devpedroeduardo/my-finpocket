@@ -30,15 +30,13 @@ export default function ImportPage() {
     getWallets().then(data => setWallets(data || []));
   }, []);
 
-  // MOTOR DE LEITURA DO ARQUIVO OFX
   const parseOFX = (ofxString: string) => {
     const parsed: ParsedTransaction[] = [];
-    const blocks = ofxString.split(/<STMTTRN>/i); // Quebra o arquivo a cada transação
+    const blocks = ofxString.split(/<STMTTRN>/i);
     
     for (let i = 1; i < blocks.length; i++) {
       const block = blocks[i];
       
-      // Extrai os dados usando Expressões Regulares (Regex)
       const dateMatch = block.match(/<DTPOSTED>(.*?)(?:\r|\n|<)/i);
       const amountMatch = block.match(/<TRNAMT>(.*?)(?:\r|\n|<)/i);
       const memoMatch = block.match(/<MEMO>(.*?)(?:\r|\n|<)/i);
@@ -47,7 +45,6 @@ export default function ImportPage() {
         const rawAmount = parseFloat(amountMatch[1]);
         const type = rawAmount >= 0 ? "income" : "expense";
         
-        // Data OFX vem no formato YYYYMMDDHHMMSS. Extraímos só o ano, mês e dia.
         const dateStr = dateMatch[1].substring(0, 8);
         const date = new Date(`${dateStr.substring(0,4)}-${dateStr.substring(4,6)}-${dateStr.substring(6,8)}T12:00:00Z`);
 
@@ -57,7 +54,7 @@ export default function ImportPage() {
           description: memoMatch[1].trim(),
           amount: Math.abs(rawAmount),
           type,
-          category: "Outros", // Categoria padrão (pode ser categorizado via IA no futuro)
+          category: "Outros",
         });
       }
     }
@@ -95,7 +92,7 @@ export default function ImportPage() {
       toast.error(result.error);
     } else {
       toast.success(`${transactions.length} transações salvas com sucesso!`);
-      setTransactions([]); // Limpa a tela
+      setTransactions([]);
     }
     setIsImporting(false);
   };
@@ -120,7 +117,6 @@ export default function ImportPage() {
               </p>
             </div>
 
-            {/* PASSO 1: SELECIONAR CONTA E ARQUIVO */}
             {transactions.length === 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 animate-in fade-in">
                 
@@ -155,7 +151,6 @@ export default function ImportPage() {
               </div>
             )}
 
-            {/* PASSO 2: REVISAR AS TRANSAÇÕES E SALVAR */}
             {transactions.length > 0 && (
               <div className="space-y-6 animate-in slide-in-from-bottom-4">
                 <Card>

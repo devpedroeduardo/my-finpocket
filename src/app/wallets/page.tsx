@@ -16,7 +16,7 @@ interface WalletData {
   balance: number;
 }
 
-// Inteligência visual para as marcas dos bancos!
+
 function getBankStyle(name: string) {
   const n = name.toLowerCase();
   if (n.includes('nubank')) return { bg: 'bg-purple-600', text: 'text-purple-600', light: 'bg-purple-100 dark:bg-purple-900/30', icon: CreditCard };
@@ -29,7 +29,6 @@ function getBankStyle(name: string) {
   if (n.includes('c6')) return { bg: 'bg-slate-800', text: 'text-slate-800 dark:text-slate-200', light: 'bg-slate-200 dark:bg-slate-800', icon: CreditCard };
   if (n.includes('dinheiro') || n.includes('carteira')) return { bg: 'bg-emerald-500', text: 'text-emerald-600', light: 'bg-emerald-100 dark:bg-emerald-900/30', icon: Wallet };
   
-  // Padrão genérico
   return { bg: 'bg-slate-600', text: 'text-slate-600 dark:text-slate-400', light: 'bg-slate-100 dark:bg-slate-800', icon: Landmark };
 }
 
@@ -39,7 +38,6 @@ export default function WalletsPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const loadData = useCallback(async () => {
-    // Agora buscamos a conta JÁ COM O SALDO calculado
     const data = await getWalletsWithBalances();
     setWallets(data || []);
   }, []);
@@ -102,7 +100,6 @@ export default function WalletsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               
-              {/* Formulário de Criação */}
               <div className="md:col-span-1">
                 <Card className="sticky top-6">
                   <CardHeader>
@@ -127,7 +124,6 @@ export default function WalletsPage() {
                 </Card>
               </div>
 
-              {/* Lista de Contas com Saldos */}
               <div className="md:col-span-2 space-y-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
                   <Landmark className="w-5 h-5 text-slate-500" /> Seus Saldos Atuais
@@ -145,7 +141,6 @@ export default function WalletsPage() {
                       
                       return (
                         <Card key={wallet.id} className="overflow-hidden border-none shadow-sm relative group">
-                          {/* Faixa de Cor Superior */}
                           <div className={`h-2 w-full ${style.bg}`} />
                           
                           <CardContent className="p-5">

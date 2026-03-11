@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// 1. Buscar todos os objetivos
 export async function getGoals() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -22,7 +21,6 @@ export async function getGoals() {
   return data;
 }
 
-// 2. Criar um novo objetivo (Apenas a casca, começa com saldo R$ 0)
 export async function createGoal(data: { name: string; target_amount: number }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -32,20 +30,18 @@ export async function createGoal(data: { name: string; target_amount: number }) 
     user_id: user.id,
     name: data.name,
     target_amount: data.target_amount,
-    current_amount: 0, // Começa vazio
+    current_amount: 0,
   });
 
   if (error) return { error: "Erro ao criar objetivo." };
 
-  revalidatePath("/objectives"); // Adapte para a rota correta da sua página
+  revalidatePath("/objectives");
   return { success: true };
 }
 
-// 3. Depositar ou Resgatar dinheiro da Caixinha
 export async function updateGoalAmount(id: string, amount: number, type: 'deposit' | 'withdraw') {
   const supabase = await createClient();
   
-  // Primeiro, precisamos saber quanto tem lá agora
   const { data: goal } = await supabase.from("goals").select("current_amount").eq("id", id).single();
   if (!goal) return { error: "Objetivo não encontrado." };
 
@@ -53,7 +49,6 @@ export async function updateGoalAmount(id: string, amount: number, type: 'deposi
     ? Number(goal.current_amount) + amount 
     : Number(goal.current_amount) - amount;
 
-  // Não deixa o saldo ficar negativo
   if (newAmount < 0) newAmount = 0;
 
   const { error } = await supabase
@@ -67,7 +62,6 @@ export async function updateGoalAmount(id: string, amount: number, type: 'deposi
   return { success: true };
 }
 
-// 4. Deletar a Caixinha
 export async function deleteGoal(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("goals").delete().eq("id", id);

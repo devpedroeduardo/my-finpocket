@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// 1. Busca as carteiras do usuário logado
 export async function getWallets() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +23,6 @@ export async function getWallets() {
   return data;
 }
 
-// 2. Cria uma nova carteira
 export async function createWallet(name: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -46,13 +44,10 @@ export async function createWallet(name: string) {
   return { success: true };
 }
 
-// 3. Deleta uma carteira
+
 export async function deleteWallet(id: string) {
   const supabase = await createClient();
-  
-  // Opcional: Verificar se existem transações ligadas a esta carteira antes de deletar
-  // Para manter simples agora, vamos permitir a exclusão direta (ou o banco bloqueia se houver transações via Foreign Key)
-  
+
   const { error } = await supabase.from("wallets").delete().eq("id", id);
 
   if (error) {
@@ -64,7 +59,6 @@ export async function deleteWallet(id: string) {
   return { success: true };
 }
 
-// 4. Busca carteiras já com os saldos calculados
 export async function getWalletsWithBalances() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

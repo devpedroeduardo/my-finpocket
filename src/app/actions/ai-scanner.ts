@@ -8,10 +8,8 @@ export async function scanReceipt(base64Image: string, mimeType: string) {
     if (!apiKey) return { error: "Chave da API do Gemini não configurada." };
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // O modelo flash também processa imagens com alta velocidade
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // 1. O Prompt Mágico: Dizemos exatamente como queremos a resposta
     const prompt = `
       Você é um assistente financeiro especialista em leitura de dados.
       Analise esta imagem (que é uma nota fiscal, recibo ou comprovante de pagamento) e extraia as seguintes informações no formato JSON ESTRITO:
@@ -26,7 +24,6 @@ export async function scanReceipt(base64Image: string, mimeType: string) {
       Responda APENAS com o JSON válido, sem usar formatação markdown como \`\`\`json. Se a imagem não for um recibo, retorne um erro no JSON.
     `;
 
-    // 2. Monta a imagem no formato que o Google exige
     const imageParts = [
       {
         inlineData: {
@@ -36,14 +33,11 @@ export async function scanReceipt(base64Image: string, mimeType: string) {
       },
     ];
 
-    // 3. Envia para a IA
     const result = await model.generateContent([prompt, ...imageParts]);
     let responseText = result.response.text();
 
-    // 4. Limpa a resposta (às vezes a IA manda crases de markdown em volta do JSON)
     responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
 
-    // 5. Converte o texto para um Objeto JavaScript
     const data = JSON.parse(responseText);
 
     return { success: true, data };

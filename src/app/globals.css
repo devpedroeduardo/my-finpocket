@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Opcional: Estilo base para tirar o fundo branco padrão se quiser */
 body {
   @apply bg-slate-50 dark:bg-slate-950;
 }

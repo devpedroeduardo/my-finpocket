@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// 1. Busca os orçamentos do usuário logado
 export async function getBudgets() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +23,6 @@ export async function getBudgets() {
   return data;
 }
 
-// 2. Cria ou atualiza um orçamento (Upsert)
 export async function upsertBudget(category: string, amount: number) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

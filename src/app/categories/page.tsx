@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { createCategory, deleteCategory, getCategories } from "@/app/actions/categories";
 
-// Definindo o tipo da categoria
 interface Category {
   id: string;
   name: string;
@@ -20,16 +19,16 @@ export default function CategoriesPage() {
   const [newCategory, setNewCategory] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1. Definimos a função PRIMEIRO (Correção do erro)
+  useEffect(() => {
+    getCategories().then((data) => {
+      setCategories(data || []);
+    });
+  }, []);
+
   async function loadCategories() {
     const data = await getCategories();
     setCategories(data || []);
   }
-
-  // 2. Chamamos ela no useEffect DEPOIS
-  useEffect(() => {
-    loadCategories();
-  }, []);
 
   async function handleAdd() {
     if (!newCategory) return;
@@ -63,7 +62,6 @@ export default function CategoriesPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
       <div className="max-w-2xl mx-auto space-y-6">
         
-        {/* Cabeçalho com Voltar */}
         <div className="flex items-center gap-4">
           <Link href="/">
             <Button variant="ghost" size="icon">
@@ -73,7 +71,6 @@ export default function CategoriesPage() {
           <h1 className="text-2xl font-bold">Minhas Categorias</h1>
         </div>
 
-        {/* Card de Adicionar */}
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -96,7 +93,6 @@ export default function CategoriesPage() {
           </CardContent>
         </Card>
 
-        {/* Lista de Categorias */}
         <div className="grid gap-3">
           {categories.length === 0 ? (
             <p className="text-center text-slate-500 py-10">

@@ -55,14 +55,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       
       <Sidebar />
 
-      {/* Adicionado o 'relative' na div principal para ancorar bem o menu */}
       <div className="flex-1 flex flex-col min-w-0 w-full overflow-hidden relative">
         <Topbar />
 
-        {/* Adicionado pb-20 (padding-bottom) para o conteúdo não ficar atrás do menu inferior */}
         <main className="p-4 md:p-6 lg:p-8 pb-20 flex-1 overflow-y-auto space-y-6 w-full max-w-full">
           
-          {/* TÍTULO E BOTÃO */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 w-full">
             <h1 className="text-2xl md:text-3xl font-bold text-slate-800 dark:text-white">
               Visão Geral
@@ -75,7 +72,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
           <AIAdvisor />
           
-          {/* CARDS RESPONSIVOS: 1 coluna no celular, 2 no tablet, 4 no PC */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
             <Card className="decoration-top decoration-blue-500 border-l-4 border-l-blue-500 shadow-sm">
               <div className="flex items-center justify-between">
@@ -118,19 +114,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </Card>
           </div>
 
-          {/* NOVO GRÁFICO GIGANTE ADICIONADO AQUI 👇 */}
           <div className="w-full">
             <DailyBalanceChart transactions={transactions as Transaction[]} />
           </div>
 
-          {/* ÁREA DE GRÁFICOS E TABELAS */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 w-full">
             
-            {/* LADO ESQUERDO: TABELA */}
             <div className="xl:col-span-2 space-y-4 w-full">
               <div className="bg-white dark:bg-slate-900 p-4 md:p-5 rounded-xl border shadow-sm space-y-4 w-full">
                 
-                {/* Cabeçalho da Tabela */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 dark:border-slate-800 pb-4 gap-3 w-full">
                   <h2 className="text-lg font-bold text-slate-800 dark:text-white">Últimas Movimentações</h2>
                   <Suspense fallback={<div className="w-full sm:w-[150px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
@@ -138,17 +130,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                   </Suspense>
                 </div>
 
-                {/* Filtros da Tabela (Responsividade Extrema) */}
                 <div className="flex flex-col xl:flex-row gap-4 justify-between w-full">
-                  
-                  {/* Barra de Pesquisa */}
                   <div className="w-full xl:max-w-md flex-1">
                     <Suspense fallback={<div className="w-full h-10 bg-slate-100 animate-pulse rounded-md" />}>
                       <SearchInput />
                     </Suspense>
                   </div>
                   
-                  {/* Selects e Botão de Exportar */}
                   <div className="flex flex-col md:flex-row flex-wrap gap-3 w-full xl:w-auto">
                     <Suspense fallback={<div className="w-full md:w-[320px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
                       <TransactionFilters />
@@ -160,14 +148,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
                 </div>
               </div>
-
-              {/* Tabela de Transações (Com scroll horizontal se necessário) */}
               <div className="w-full overflow-x-auto pb-2">
                 <TransactionList data={transactions as Transaction[]} />
               </div>
             </div>
             
-            {/* LADO DIREITO: GRÁFICOS */}
             <div className="xl:col-span-1 space-y-6 w-full">
               <div className="w-full overflow-hidden">
                 <ExpensesChart data={formattedCategoryData} />
@@ -177,14 +162,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               </div>
             </div>
           </div>
-        {/* ADICIONE O FOOTER AQUI 👇 */}
           <div className="pt-8">
             <Footer />
           </div>
 
         </main>
 
-        {/* COMPONENTE ADICIONADO AQUI: Fica fixo no rodapé apenas no celular */}
         <BottomNav />
 
       </div>

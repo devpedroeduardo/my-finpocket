@@ -26,14 +26,14 @@ export async function createCategory(name: string) {
   }
 
   const { error } = await supabase.from("categories").insert({
-    name: name.toUpperCase(), // Salvamos em maiúsculo para padronizar
+    name: name.toUpperCase(),
     user_id: user.id
   });
 
   if (error) return { error: "Erro ao criar categoria." };
 
-  revalidatePath("/categories"); // Atualiza a página de categorias
-  revalidatePath("/"); // Atualiza a dashboard (caso impacte filtros)
+  revalidatePath("/categories");
+  revalidatePath("/");
   return { success: true };
 }
 

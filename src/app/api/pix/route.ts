@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// 1. Inicializa a conexão com o banco usando suas chaves do arquivo .env.local
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -18,13 +17,10 @@ export async function POST(request: Request) {
       )
     }
 
-    // ====================================================================
-    // A MÁGICA: DANDO BAIXA NO BANCO DE DADOS EM LOTE
-    // ====================================================================
     const { error: dbError } = await supabase
-      .from('transactions') // ⚠️ Atenção: Verifique se sua tabela se chama 'transactions' mesmo
-      .update({ status: 'PAID' }) // ⚠️ Atenção: Verifique se sua coluna se chama 'status' e o valor pago é 'PAID' (ou 'pago')
-      .in('id', transactionIds) // Atualiza de uma vez só todos os IDs dessa lista!
+      .from('transactions') 
+      .update({ status: 'PAID' }) 
+      .in('id', transactionIds) 
 
     if (dbError) {
       console.error('Erro ao atualizar no Supabase:', dbError)
@@ -34,12 +30,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // ====================================================================
-    // GERAÇÃO DO CÓDIGO PIX 
-    // ====================================================================
     const pixFinal = `00020126580014br.gov.bcb.pix0136pix@myfinpocket.com.br520400005303986540${totalAmount.toFixed(2).replace('.', '')}5802BR5916MyFinPocket LTDA6009SAO PAULO62140510PGTOLOTE016304ABCD`
 
-    // Simulando tempo de resposta do servidor do Banco Central (1.5s)
     await new Promise((resolve) => setTimeout(resolve, 1500))
 
     return NextResponse.json({

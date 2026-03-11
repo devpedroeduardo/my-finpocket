@@ -27,7 +27,6 @@ export async function updateProfile(formData: FormData) {
   const newPassword = formData.get("password") as string;
   const avatarFile = formData.get("avatar") as File | null;
 
-  // CORREÇÃO: Tipagem estrita no lugar de 'any'
   const updatePayload: { 
     data: { full_name: string; phone_number: string; avatar_url?: string }; 
     password?: string 
@@ -38,12 +37,11 @@ export async function updateProfile(formData: FormData) {
     }
   };
 
-  // 1. LÓGICA DE UPLOAD DE IMAGEM
   if (avatarFile && avatarFile.size > 0) {
     const fileExt = avatarFile.name.split('.').pop();
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
 
-    // CORREÇÃO: Removido o 'uploadData' que não estava sendo usado
+  
     const { error: uploadError } = await supabase.storage
       .from('avatars')
       .upload(fileName, avatarFile, { upsert: true });
@@ -60,7 +58,6 @@ export async function updateProfile(formData: FormData) {
     updatePayload.data.avatar_url = publicUrl;
   }
 
-  // 2. LÓGICA DE SENHA
   if (newPassword) {
     if (newPassword.length < 8) {
       return { error: "A nova senha precisa ter no mínimo 8 caracteres." };
@@ -68,7 +65,6 @@ export async function updateProfile(formData: FormData) {
     updatePayload.password = newPassword;
   }
 
-  // 3. ATUALIZA O USUÁRIO
   const { error } = await supabase.auth.updateUser(updatePayload);
 
   if (error) {
