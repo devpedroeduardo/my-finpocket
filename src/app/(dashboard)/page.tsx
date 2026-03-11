@@ -11,6 +11,7 @@ import { TransactionFilters } from "@/components/transaction-filters";
 import { ExportButton } from "@/components/export-button";
 import { BottomNav } from "@/components/bottom-nav";
 import { PixBatchDialog } from "@/components/pix-batch-dialog";
+import { DailyBalanceChart } from "@/components/daily-balance-chart";
 
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
@@ -67,7 +68,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               Visão Geral
             </h1>
             <div className="flex w-full sm:w-auto gap-3">
-              {/* CORREÇÃO DO ESLINT: Usando o tipo Transaction[] no lugar de any */}
               <PixBatchDialog transactions={transactions as Transaction[]} />
               <NewTransactionDialog />
             </div>
@@ -86,8 +86,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 {formatCurrency(stats.balance)}
               </Metric>
             </Card>
-
-            {/* CORREÇÃO DO TERMINAL: A tag <PixBatchPanel /> que estava solta aqui foi removida! */}
 
             <Card className="decoration-top decoration-emerald-500 border-l-4 border-l-emerald-500 shadow-sm">
               <div className="flex items-center justify-between">
@@ -118,6 +116,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 {formatCurrency(stats.saved || 0)}
               </Metric>
             </Card>
+          </div>
+
+          {/* NOVO GRÁFICO GIGANTE ADICIONADO AQUI 👇 */}
+          <div className="w-full">
+            <DailyBalanceChart transactions={transactions as Transaction[]} />
           </div>
 
           {/* ÁREA DE GRÁFICOS E TABELAS */}

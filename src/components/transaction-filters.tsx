@@ -1,71 +1,54 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { getCategories } from "@/app/actions/categories";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
+import { useCallback } from 'react'
 
 export function TransactionFilters() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [categories, setCategories] = useState<{id: string, name: string}[]>([]);
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
 
-  // Pega os valores atuais da URL
-  const currentType = searchParams.get("type") || "all";
-  const currentCategory = searchParams.get("category") || "all";
+  // Lê o que está atualmente na URL
+  const currentType = searchParams.get('type') || ''
+  const currentStatus = searchParams.get('status') || ''
 
-  // Carrega as categorias dinâmicas do usuário
-  useEffect(() => {
-    getCategories().then((data) => setCategories(data || []));
-  }, []);
-
-  // Atualiza a URL quando o usuário escolhe um filtro
-  const updateFilter = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    
-    if (value && value !== "all") {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    
-    router.push(`/?${params.toString()}`);
-  };
+  // Função mágica do Next.js para juntar vários filtros na URL sem apagar os anteriores
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (value) {
+        params.set(name, value)
+      } else {
+        params.delete(name) // Se o usuário escolher "Todos", a gente limpa a URL
+      }
+      return params.toString()
+    },
+    [searchParams]
+  )
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-      {/* Filtro de Tipo */}
-      <Select value={currentType} onValueChange={(val) => updateFilter("type", val)}>
-        <SelectTrigger className="w-full sm:w-[140px] h-10">
-          <SelectValue placeholder="Tipo" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os tipos</SelectItem>
-          <SelectItem value="income">Receitas</SelectItem>
-          <SelectItem value="expense">Despesas</SelectItem>
-        </SelectContent>
-      </Select>
+    <div className="flex flex-col sm:flex-row gap-3 w-full">
+      {/* 1. Filtro de Tipo (Receita vs Despesa) */}
+      <select
+        value={currentType}
+        onChange={(e) => router.push(pathname + '?' + createQueryString('type', e.target.value))}
+        className="h-10 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+      >
+        <option value="">Todas as Movimentações</option>
+        <option value="income">Entradas (Receitas)</option>
+        <option value="expense">Saídas (Despesas)</option>
+      </select>
 
-      {/* Filtro de Categoria */}
-      <Select value={currentCategory} onValueChange={(val) => updateFilter("category", val)}>
-        <SelectTrigger className="w-full sm:w-[160px] h-10">
-          <SelectValue placeholder="Categoria" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas as categorias</SelectItem>
-          {categories.map((cat) => (
-            <SelectItem key={cat.id} value={cat.name}>
-              {cat.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* 2. NOVO: Filtro de Status conectado com a nossa API do PIX! */}
+      <select
+        value={currentStatus}
+        onChange={(e) => router.push(pathname + '?' + createQueryString('status', e.target.value))}
+        className="h-10 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-sm font-medium text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-emerald-500 transition-all cursor-pointer"
+      >
+        <option value="">Qualquer Status</option>
+        <option value="PAID">✅ Pagos / Recebidos</option>
+        <option value="PENDING">⏳ Pendentes</option>
+      </select>
     </div>
-  );
+  )
 }
