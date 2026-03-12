@@ -5,7 +5,8 @@ import { Wallet, TrendingUp, TrendingDown, PiggyBank } from "lucide-react";
 import { NewTransactionDialog } from "@/components/new-transaction-dialog";
 import { TransactionList, Transaction } from "@/components/transaction-list";
 import { ExpensesChart } from "@/components/expenses-chart";
-import { MonthSelector } from "@/components/month-selector";
+// 1. IMPORTAÇÃO DO NOVO FILTRO DE DATAS
+import { DateRangeFilter } from "@/components/date-range-filter";
 import { SearchInput } from "@/components/search-input";
 import { TransactionFilters } from "@/components/transaction-filters";
 import { ExportButton } from "@/components/export-button";
@@ -32,15 +33,18 @@ interface PageProps {
 export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams;
   
-  const currentMonth = params?.month;
+  // 2. BUSCANDO AS NOVAS VARIÁVEIS DA URL
+  const startDate = params?.startDate;
+  const endDate = params?.endDate;
   const currentSearch = params?.search;
   const currentType = params?.type;
   const currentCategory = params?.category;
 
+  // 3. PASSANDO AS DATAS PARA OS SERVIÇOS DO SUPABASE
   const [stats, transactions, categoryData] = await Promise.all([
-    getDashboardStats(currentMonth, currentSearch),
-    getRecentTransactions(currentMonth, currentSearch, currentType, currentCategory),
-    getExpensesByCategory(currentMonth, currentSearch),
+    getDashboardStats(startDate, endDate, currentSearch),
+    getRecentTransactions(startDate, endDate, currentSearch, currentType, currentCategory),
+    getExpensesByCategory(startDate, endDate, currentSearch),
   ]);
 
   const chartColors = ["#10b981", "#3b82f6", "#f43f5e", "#f59e0b", "#8b5cf6", "#06b6d4", "#ec4899"];
@@ -75,7 +79,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
             <Card className="decoration-top decoration-blue-500 border-l-4 border-l-blue-500 shadow-sm">
               <div className="flex items-center justify-between">
-                <Text>Saldo {currentSearch || currentType || currentCategory ? '(Filtro)' : ''}</Text>
+                <Text>Saldo {currentSearch || currentType || currentCategory || startDate ? '(Filtro)' : ''}</Text>
                 <Wallet className="w-5 h-5 text-blue-600 shrink-0" />
               </div>
               <Metric className="mt-2 truncate whitespace-nowrap tabular-nums tracking-tight">
@@ -125,9 +129,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-100 dark:border-slate-800 pb-4 gap-3 w-full">
                   <h2 className="text-lg font-bold text-slate-800 dark:text-white">Últimas Movimentações</h2>
-                  <Suspense fallback={<div className="w-full sm:w-[150px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
-                    <MonthSelector /> 
+                  
+                  {/* 4. COMPONENTE DE FILTRO INSERIDO AQUI */}
+                  <Suspense fallback={<div className="w-full sm:w-[300px] h-10 bg-slate-100 animate-pulse rounded-md" />}>
+                    <DateRangeFilter /> 
                   </Suspense>
+
                 </div>
 
                 <div className="flex flex-col xl:flex-row gap-4 justify-between w-full">

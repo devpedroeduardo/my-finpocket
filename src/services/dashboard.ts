@@ -3,26 +3,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { startOfMonth, endOfMonth } from "date-fns";
 
-function getMonthBounds(monthStr?: string) {
-  const targetMonth = monthStr || new Date().toISOString().slice(0, 7);
-  const baseDate = new Date(`${targetMonth}-01T12:00:00`); 
+// Nova função inteligente para lidar com as datas
+function getDateBounds(startDate?: string, endDate?: string) {
+  // Se o usuário filtrou por data no Front-End
+  if (startDate && endDate) {
+    return {
+      start: `${startDate}T00:00:00`, // Pega desde a meia-noite do dia inicial
+      end: `${endDate}T23:59:59`      // Pega até o último segundo do dia final
+    };
+  }
   
+  // Fallback: Se não tem filtro na URL, mostra o mês atual por padrão
+  const now = new Date();
   return {
-    startDate: startOfMonth(baseDate).toISOString(),
-    endDate: endOfMonth(baseDate).toISOString()
+    start: startOfMonth(now).toISOString(),
+    end: endOfMonth(now).toISOString()
   };
 }
 
-export async function getDashboardStats(month?: string, search?: string) {
+export async function getDashboardStats(startDate?: string, endDate?: string, search?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { balance: 0, income: 0, expense: 0, saved: 0 };
 
-  const { startDate, endDate } = getMonthBounds(month);
+  const { start, end } = getDateBounds(startDate, endDate);
+  
   let query = supabase.from("transactions").select("amount, type")
     .eq("user_id", user.id)
-    .gte("created_at", startDate)
-    .lte("created_at", endDate);
+    .gte("created_at", start)
+    .lte("created_at", end);
 
   if (search) query = query.ilike("description", `%${search}%`);
 
@@ -47,18 +56,18 @@ export async function getDashboardStats(month?: string, search?: string) {
   };
 }
 
-export async function getRecentTransactions(month?: string, search?: string, type?: string, category?: string) {
+export async function getRecentTransactions(startDate?: string, endDate?: string, search?: string, type?: string, category?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { startDate, endDate } = getMonthBounds(month);
+  const { start, end } = getDateBounds(startDate, endDate);
 
   let query = supabase.from("transactions").select(`*, wallets ( name )`)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
-    .gte("created_at", startDate)
-    .lte("created_at", endDate);
+    .gte("created_at", start)
+    .lte("created_at", end);
 
   if (search) query = query.ilike("description", `%${search}%`);
   if (type && type !== "all") query = query.eq("type", type);
@@ -68,18 +77,18 @@ export async function getRecentTransactions(month?: string, search?: string, typ
   return data || [];
 }
 
-export async function getExpensesByCategory(month?: string, search?: string) {
+export async function getExpensesByCategory(startDate?: string, endDate?: string, search?: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { startDate, endDate } = getMonthBounds(month);
+  const { start, end } = getDateBounds(startDate, endDate);
 
   let query = supabase.from("transactions").select("amount, category")
     .eq("user_id", user.id)
     .eq("type", "expense")
-    .gte("created_at", startDate)
-    .lte("created_at", endDate);
+    .gte("created_at", start)
+    .lte("created_at", end);
 
   if (search) query = query.ilike("description", `%${search}%`);
 

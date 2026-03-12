@@ -75,3 +75,49 @@ export async function updateProfile(formData: FormData) {
   revalidatePath("/profile");
   return { success: true };
 }
+
+// --- NOVAS FUNÇÕES DE PREFERÊNCIAS (Notificações) ---
+
+export async function getEmailPreference() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return false;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("email_notifications")
+    .eq("id", user.id)
+    .single();
+
+  if (error) {
+    // Se o usuário ainda não tiver a linha na tabela, não tem problema, retornamos false
+    return false;
+  }
+
+  return data?.email_notifications || false;
+}
+
+export async function toggleEmailPreference(isEnabled: boolean) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) return { error: "Não autorizado." };
+
+  // O upsert garante que não dê erro se for a primeira vez que o usuário clica no botão
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({ 
+      id: user.id, 
+      email_notifications: isEnabled 
+    });
+
+  if (error) {
+    console.error("Erro ao atualizar preferência:", error);
+    return { error: "Falha ao atualizar a preferência." };
+  }
+
+  // Se a sua página se chamar "profile" ou "settings", ajuste o caminho aqui
+  revalidatePath("/preferences"); 
+  return { success: true };
+}

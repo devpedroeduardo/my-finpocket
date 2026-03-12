@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { getUserProfile, updateProfile } from "@/app/actions/profile";
+import { getUserProfile, updateProfile, getEmailPreference, toggleEmailPreference } from "@/app/actions/profile";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -21,18 +22,28 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  
+  // Novo estado para o Switch de e-mail
+  const [isEmailEnabled, setIsEmailEnabled] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadData() {
-      const data = await getUserProfile();
+      // Carrega os dados do perfil e a preferência de e-mail simultaneamente
+      const [data, emailPref] = await Promise.all([
+        getUserProfile(),
+        getEmailPreference()
+      ]);
+
       if (data) {
         setEmail(data.email || "");
         setName(data.name || "");
         setPhone(data.phone || "");
         setAvatarUrl(data.avatar_url || "");
       }
+      
+      setIsEmailEnabled(emailPref);
       setIsLoading(false);
     }
     loadData();
@@ -69,6 +80,22 @@ export default function ProfilePage() {
     }
     
     setIsSaving(false);
+  }
+
+  // Função para lidar com o clique no Switch de E-mail
+  async function handleToggleEmail(checked: boolean) {
+    // Optimistic UI: Muda visualmente primeiro
+    setIsEmailEnabled(checked);
+    
+    const result = await toggleEmailPreference(checked);
+    
+    if (result?.error) {
+      // Reverte se der erro no banco
+      setIsEmailEnabled(!checked);
+      toast.error(result.error);
+    } else {
+      toast.success(checked ? "Notificações ativadas!" : "Notificações desativadas.");
+    }
   }
 
   if (isLoading) {
@@ -181,12 +208,17 @@ export default function ProfilePage() {
                 <CardDescription>Configure como o MyFinPocket funciona para você.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
+                
+                {/* SWITCH DE E-MAIL AQUI */}
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50">
                   <div className="space-y-0.5">
                     <Label className="text-base flex items-center gap-2"><Bell className="w-4 h-4 text-blue-500"/> Notificações por E-mail</Label>
                     <p className="text-sm text-slate-500">Receba resumos semanais de gastos.</p>
                   </div>
-                  <Button variant="outline" disabled>Em breve</Button>
+                  <Switch 
+                    checked={isEmailEnabled} 
+                    onCheckedChange={handleToggleEmail} 
+                  />
                 </div>
                 
                 <div className="flex items-center justify-between p-4 border rounded-lg">
@@ -200,7 +232,6 @@ export default function ProfilePage() {
             </Card>
           </TabsContent>
 
-          {/* ABA 3: SEGURANÇA */}
           <TabsContent value="security">
             <form onSubmit={handleSubmit}>
               <Card>
