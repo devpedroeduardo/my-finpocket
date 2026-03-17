@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { Save, Camera, Loader2 } from "lucide-react";
-// Ajuste o caminho de importação do seu cliente Supabase conforme a estrutura do seu projeto
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client"; 
 
 export function ProfileGeneralTab() {
   const supabase = createClient();
   
-  // O estado começa vazio, esperando os dados reais do banco
   const [formData, setFormData] = useState({
     nome: "",
     telefone: "",
@@ -19,31 +17,33 @@ export function ProfileGeneralTab() {
     estado: "",
   });
 
-  // Dois estados de carregamento separados: um para a tela abrir, outro para o botão salvar
   const [isPageLoading, setIsPageLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState({ text: "", type: "" });
 
-  // 1. Busca os dados assim que o componente é montado na tela
   useEffect(() => {
     async function fetchUserData() {
       try {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const { data: { session }, error: authError } = await supabase.auth.getSession();
+        const user = session?.user;
         
-        if (authError || !user) throw new Error("Usuário não autenticado");
+        if (authError || !user) {
+          console.warn("Aguardando hidratação da sessão no cliente...");
+          setIsPageLoading(false);
+          return;
+        }
 
-        // Busca o perfil na tabela 'profiles' associado a este usuário
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single();
 
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error("Erro ao buscar perfil:", profileError);
-        }
 
-        // Preenche os inputs com os dados que vieram do banco
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.warn("Aviso ao buscar perfil (pode ser RLS):", profileError);
+      }
+
         if (profile) {
           setFormData({
             nome: profile.full_name || "",
@@ -55,7 +55,6 @@ export function ProfileGeneralTab() {
             estado: profile.state || "",
           });
         } else {
-          // Se o perfil não existir na tabela ainda, pelo menos preenche o e-mail
           setFormData(prev => ({ ...prev, email: user.email || "" }));
         }
       } catch (error) {
@@ -68,30 +67,33 @@ export function ProfileGeneralTab() {
     fetchUserData();
   }, [supabase]);
 
-  // 2. Atualiza o estado conforme o usuário digita
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setFeedbackMsg({ text: "", type: "" }); // Limpa a mensagem de sucesso/erro ao digitar
+    setFeedbackMsg({ text: "", type: "" }); 
   };
 
-  // 3. Salva as alterações no banco de dados
   const handleSave = async () => {
     setIsSaving(true);
     setFeedbackMsg({ text: "", type: "" });
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Sessão expirada");
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
+      
+      if (!user) {
+        setFeedbackMsg({ text: "Sessão não encontrada. Tente recarregar a página.", type: "error" });
+        setIsSaving(false);
+        return;
+      }
 
-      // Atualiza (ou insere) os dados na tabela 'profiles' usando upsert
       const { error } = await supabase
         .from("profiles")
         .upsert({
-          id: user.id, // Chave primária obrigatória
+          id: user.id,
           full_name: formData.nome,
           phone: formData.telefone,
-          birth_date: formData.dataNascimento,
+          birth_date: formData.dataNascimento === "" ? null : formData.dataNascimento,
           profession: formData.profissao,
           city: formData.cidade,
           state: formData.estado,
@@ -102,14 +104,13 @@ export function ProfileGeneralTab() {
 
       setFeedbackMsg({ text: "Perfil atualizado com sucesso!", type: "success" });
     } catch (error) {
-      console.error("Erro ao salvar:", error);
-      setFeedbackMsg({ text: "Erro ao salvar alterações. Tente novamente.", type: "error" });
+      console.warn("Aviso ao salvar:", error);
+      setFeedbackMsg({ text: "Erro ao salvar alterações. Verifique os dados e tente novamente.", type: "error" });
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Tela de carregamento enquanto o banco responde na primeira vez
   if (isPageLoading) {
     return (
       <div className="flex items-center justify-center w-full max-w-3xl h-64 bg-[#0f172a] border border-slate-800 rounded-xl">
@@ -121,7 +122,6 @@ export function ProfileGeneralTab() {
   return (
     <div className="bg-[#0f172a] border border-slate-800 rounded-xl overflow-hidden w-full max-w-3xl">
       
-      {/* Cabeçalho */}
       <div className="p-6 border-b border-slate-800 flex justify-between items-center">
         <div>
           <h2 className="text-lg font-bold text-white">Dados Pessoais</h2>
@@ -133,10 +133,9 @@ export function ProfileGeneralTab() {
 
       <div className="p-6 space-y-8">
         
-        {/* Seção da Foto */}
         <div className="flex items-center gap-6 p-4 bg-slate-900/50 border border-slate-800/50 rounded-lg">
           <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-2xl font-bold shrink-0 uppercase">
-            {formData.nome ? formData.nome.substring(0, 2) : "User"}
+            {formData.nome ? formData.nome.substring(0, 2) : "US"}
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-medium text-white mb-1">Foto de Perfil</h3>
@@ -148,7 +147,6 @@ export function ProfileGeneralTab() {
           </div>
         </div>
 
-        {/* Grid do Formulário */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           
           <div className="space-y-2 md:col-span-2">
@@ -221,7 +219,6 @@ export function ProfileGeneralTab() {
               <option value="RJ">Rio de Janeiro (RJ)</option>
               <option value="MG">Minas Gerais (MG)</option>
               <option value="CE">Ceará (CE)</option>
-              {/* Adicione outros estados conforme a necessidade do projeto */}
               <option value="OUTRO">Outro</option>
             </select>
           </div>
@@ -234,14 +231,12 @@ export function ProfileGeneralTab() {
               value={formData.email}
               disabled
               className="w-full bg-slate-900 border border-slate-800 rounded-md px-4 py-2.5 text-slate-500 cursor-not-allowed"
-              title="A alteração de e-mail deve ser feita na aba Segurança."
             />
           </div>
 
         </div>
       </div>
 
-      {/* Footer com Botão de Salvar e Feedback */}
       <div className="p-6 bg-slate-900/30 border-t border-slate-800 flex items-center justify-between">
         
         <div className="text-sm font-medium">
