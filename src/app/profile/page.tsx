@@ -1,64 +1,31 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, User, Lock, Save, Loader2, Camera, Bell, Settings, ShieldAlert } from "lucide-react";
+import { ArrowLeft, User, Lock, Loader2, Bell, Settings, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { getUserProfile, updateProfile, getEmailPreference, toggleEmailPreference } from "@/app/actions/profile";
+import { updateProfile, getEmailPreference, toggleEmailPreference } from "@/app/actions/profile";
+import { ProfileGeneralTab } from "@/components/profile-general-tab";
 
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  
-  // Novo estado para o Switch de e-mail
   const [isEmailEnabled, setIsEmailEnabled] = useState(false);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadData() {
-      // Carrega os dados do perfil e a preferência de e-mail simultaneamente
-      const [data, emailPref] = await Promise.all([
-        getUserProfile(),
-        getEmailPreference()
-      ]);
-
-      if (data) {
-        setEmail(data.email || "");
-        setName(data.name || "");
-        setPhone(data.phone || "");
-        setAvatarUrl(data.avatar_url || "");
-      }
-      
+      const emailPref = await getEmailPreference();
       setIsEmailEnabled(emailPref);
       setIsLoading(false);
     }
     loadData();
   }, []);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -70,27 +37,20 @@ export default function ProfilePage() {
     if (result?.error) {
       toast.error(result.error);
     } else {
-      toast.success("Perfil atualizado com sucesso!");
-      (document.getElementById("password") as HTMLInputElement).value = "";
-      
-      if (avatarPreview) {
-        setAvatarUrl(avatarPreview);
-        setAvatarPreview(null);
-      }
+      toast.success("Senha atualizada com sucesso!");
+      const passwordInput = document.getElementById("password") as HTMLInputElement;
+      if (passwordInput) passwordInput.value = "";
     }
     
     setIsSaving(false);
   }
 
-  // Função para lidar com o clique no Switch de E-mail
   async function handleToggleEmail(checked: boolean) {
-    // Optimistic UI: Muda visualmente primeiro
     setIsEmailEnabled(checked);
     
     const result = await toggleEmailPreference(checked);
     
     if (result?.error) {
-      // Reverte se der erro no banco
       setIsEmailEnabled(!checked);
       toast.error(result.error);
     } else {
@@ -105,8 +65,6 @@ export default function ProfilePage() {
       </div>
     );
   }
-
-  const getInitials = (name: string) => name ? name.substring(0, 2).toUpperCase() : "US";
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
@@ -129,76 +87,7 @@ export default function ProfilePage() {
           </TabsList>
 
           <TabsContent value="general">
-            <form onSubmit={handleSubmit}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Dados Pessoais</CardTitle>
-                  <CardDescription>
-                    Gerencie sua identidade visual e informações de contato.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  
-                  <div className="flex flex-col sm:flex-row items-center gap-6 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-dashed">
-                    <Avatar className="w-24 h-24 border-4 border-white dark:border-slate-800 shadow-sm">
-                      <AvatarImage src={avatarPreview || avatarUrl} className="object-cover" />
-                      <AvatarFallback className="text-2xl bg-emerald-100 text-emerald-700">
-                        {getInitials(name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex flex-col items-center sm:items-start space-y-2">
-                      <Label className="text-base font-medium">Foto de Perfil</Label>
-                      <p className="text-sm text-slate-500 text-center sm:text-left">
-                        Recomendado: JPG ou PNG quadrados de até 2MB.
-                      </p>
-                      <input 
-                        type="file" 
-                        id="avatar" 
-                        name="avatar" 
-                        accept="image/png, image/jpeg, image/webp" 
-                        className="hidden" 
-                        ref={fileInputRef}
-                        onChange={handleImageChange}
-                      />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
-                        className="gap-2 mt-2"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        <Camera className="w-4 h-4" />
-                        Escolher nova foto
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Nome Completo</Label>
-                      <Input id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} required />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone / WhatsApp</Label>
-                      <Input id="phone" name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail (Login)</Label>
-                    <Input id="email" type="email" value={email} disabled className="bg-slate-100 dark:bg-slate-900 cursor-not-allowed" />
-                  </div>
-
-                </CardContent>
-                <CardFooter className="bg-slate-50 dark:bg-slate-900 border-t px-6 py-4">
-                  <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700" disabled={isSaving}>
-                    {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</> : <><Save className="mr-2 h-4 w-4" /> Salvar Alterações</>}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </form>
+            <ProfileGeneralTab />
           </TabsContent>
 
           <TabsContent value="preferences">
@@ -209,7 +98,6 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 
-                {/* SWITCH DE E-MAIL AQUI */}
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50">
                   <div className="space-y-0.5">
                     <Label className="text-base flex items-center gap-2"><Bell className="w-4 h-4 text-blue-500"/> Notificações por E-mail</Label>
