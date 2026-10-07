@@ -1,26 +1,68 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(supabaseUrl, supabaseKey)
+// O corpo só precisa dos IDs: o valor total é calculado no servidor,
+// a partir do banco, para não confiar em um número enviado pelo navegador.
+const pixSchema = z.object({
+  transactionIds: z
+    .array(z.string().min(1))
+    .min(1, 'Nenhuma conta selecionada.')
+    .max(100, 'Selecione no máximo 100 contas por lote.'),
+})
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { transactionIds, totalAmount } = body
+    // 1. Cliente com a sessão do usuário (cookies): as políticas de RLS valem aqui.
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
-    if (!transactionIds || transactionIds.length === 0 || !totalAmount) {
+    if (!user) {
+      return NextResponse.json({ error: 'Faça login para continuar.' }, { status: 401 })
+    }
+
+    // 2. Validação da entrada.
+    const parsed = pixSchema.safeParse(await request.json().catch(() => null))
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Nenhuma conta selecionada ou valor inválido.' },
+        { error: parsed.error.issues[0]?.message ?? 'Dados inválidos.' },
         { status: 400 }
       )
     }
+    const transactionIds = [...new Set(parsed.data.transactionIds)]
 
+    // 3. Confere se todas as contas existem e pertencem ao usuário logado.
+    const { data: contas, error: selectError } = await supabase
+      .from('transactions')
+      .select('id, amount')
+      .eq('user_id', user.id)
+      .in('id', transactionIds)
+
+    if (selectError) {
+      console.error('Erro ao buscar as contas no Supabase:', selectError)
+      return NextResponse.json(
+        { error: 'Não foi possível consultar as contas selecionadas.' },
+        { status: 500 }
+      )
+    }
+
+    if (!contas || contas.length !== transactionIds.length) {
+      return NextResponse.json(
+        { error: 'Uma ou mais contas não foram encontradas.' },
+        { status: 404 }
+      )
+    }
+
+    const totalAmount = contas.reduce((total, conta) => total + Number(conta.amount), 0)
+
+    // 4. Dá baixa apenas nas contas do próprio usuário.
     const { error: dbError } = await supabase
-      .from('transactions') 
-      .update({ status: 'PAID' }) 
-      .in('id', transactionIds) 
+      .from('transactions')
+      .update({ status: 'PAID' })
+      .eq('user_id', user.id)
+      .in('id', transactionIds)
 
     if (dbError) {
       console.error('Erro ao atualizar no Supabase:', dbError)
@@ -30,6 +72,7 @@ export async function POST(request: Request) {
       )
     }
 
+    // Código PIX de demonstração (não é um pagamento real).
     const pixFinal = `00020126580014br.gov.bcb.pix0136pix@myfinpocket.com.br520400005303986540${totalAmount.toFixed(2).replace('.', '')}5802BR5916MyFinPocket LTDA6009SAO PAULO62140510PGTOLOTE016304ABCD`
 
     await new Promise((resolve) => setTimeout(resolve, 1500))
@@ -37,9 +80,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       pixCopiaECola: pixFinal,
-      message: `Lote de ${transactionIds.length} contas processado e baixado com sucesso.`
+      totalAmount,
+      message: `Lote de ${transactionIds.length} contas processado e baixado com sucesso.`,
     })
-
   } catch (error) {
     console.error('Erro fatal na API do PIX:', error)
     return NextResponse.json(
