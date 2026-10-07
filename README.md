@@ -1,81 +1,126 @@
-# 💼 MyFinPocket
+<h1 align="center">💼 MyFinPocket</h1>
 
-![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)
+<p align="center">
+  Aplicação de finanças pessoais para registrar receitas e despesas, acompanhar o saldo e entender para onde vai o dinheiro.
+</p>
 
-O **MyFinPocket** é um assistente financeiro inteligente e moderno, focado em dar ao usuário controle total sobre suas finanças. Construído com uma arquitetura de Software como Serviço (SaaS), ele vai muito além de um simples rastreador de despesas: conta com inteligência artificial para análises, automação de conciliação de faturas em PDF, sistema avançado de pagamentos em lote, segurança de nível corporativo e tudo isso empacotado como um **Progressive Web App (PWA)** instalável.
+<p align="center">
+  <a href="https://my-finpocket.vercel.app/"><strong>Acessar a aplicação »</strong></a>
+</p>
 
-## ✨ Funcionalidades Principais
+<p align="center">
+  <a href="https://github.com/devpedroeduardo/my-finpocket/actions/workflows/ci.yml"><img src="https://github.com/devpedroeduardo/my-finpocket/actions/workflows/ci.yml/badge.svg" alt="CI / E2E Tests"></a>
+  <img src="https://img.shields.io/badge/Next.js-000000?style=flat-square&logo=nextdotjs&logoColor=white" alt="Next.js">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white" alt="Supabase">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright">
+</p>
 
-* 📄 **Leitura e Conciliação de Faturas (PDF):** Sistema inteligente de upload e leitura de extratos/faturas em PDF, automatizando a entrada de dados e facilitando a conciliação bancária do usuário.
-* 💳 **Pagamento em Lote via PIX:** Selecione múltiplas despesas pendentes, gere um QR Code dinâmico (Copia e Cola) via API própria e dê baixa automática em todas as contas simultaneamente.
-* 📈 **Dashboard Dinâmico e Interativo:** Gráficos avançados criados com Tremor, incluindo um **Gráfico de Evolução de Saldo Diário** inteligente que altera a sua cor (Verde/Vermelho) automaticamente com base na saúde do fluxo de caixa.
-* 🔍 **Filtros Avançados via URL:** Sistema de busca e filtragem de transações (por tipo, status e mês) persistidos na URL via `searchParams`, permitindo navegação fluida sem recarregar a página (com `router.refresh()`).
-* 🔒 **Segurança e Autenticação SSR:** Proteção total de rotas com Next.js Middleware. Acesso gerenciado via Cookies pelo Supabase Auth, bloqueio nativo contra senhas vazadas e isolamento de dados por usuário usando **Row Level Security (RLS)** diretamente no banco PostgreSQL.
-* 🤖 **AI Advisor:** Análise inteligente do mês gerada por Inteligência Artificial (Google Gemini), oferecendo insights sobre onde economizar e como estão seus hábitos de consumo.
-* 📱 **PWA Nativo:** Instalação direta no celular (iOS/Android) com ícone próprio e experiência de tela cheia, sem barra de navegador.
-* 🐷 **Cofres (Saving Goals) & 🚧 Limites (Budgets):** Sistema de caixinhas para proteger dinheiro de objetivos específicos e definição de tetos de gastos por categoria com barras de progresso.
+<p align="center">
+  <img src="./docs/dashboard.png" alt="Dashboard do MyFinPocket" width="72%">
+  &nbsp;
+  <img src="./docs/mobile.png" alt="MyFinPocket no celular" width="22%">
+</p>
 
-## 🛠️ Tecnologias Utilizadas
+## ✨ Funcionalidades
 
-* **Frontend:** Next.js (App Router), React, TypeScript.
-* **Estilização & UI:** Tailwind CSS, shadcn/ui, Tremor (Gráficos), Lucide React (Ícones).
-* **Backend & BaaS:** Supabase, `@supabase/ssr` (Gerenciamento de Sessão Seguro), Route Handlers (API do Next.js).
-* **Automação & Processamento:** Leitura de PDF e estruturação de dados.
-* **Ferramentas Adicionais:** `react-qr-code` (Geração de PIX), `@ducanh2912/next-pwa`.
-* **Inteligência Artificial:** Integração com LLM (Google Gemini).
+- **Dashboard do mês** com saldo, receitas, despesas, valor guardado em cofres e gráfico da evolução diária do saldo.
+- **Transações** com criação, edição, filtros por tipo, status e período, e busca. Os filtros ficam na URL, então a página pode ser compartilhada ou recarregada sem perder o estado.
+- **Contas, categorias e assinaturas** para organizar de onde sai e para onde vai cada valor.
+- **Objetivos (cofres) e limites por categoria**, com barras de progresso.
+- **Relatórios** com a evolução de receitas e despesas nos últimos 6 meses e exportação em PDF.
+- **Leitura de comprovantes com IA:** envie a foto de uma nota ou recibo e o Google Gemini preenche descrição, valor, data e categoria.
+- **Análise do mês com IA:** um resumo dos hábitos de gasto com sugestões de onde economizar.
+- **Pagamento em lote via PIX:** selecione várias contas pendentes, gere um QR Code PIX e dê baixa em todas de uma vez.
+- **PWA instalável**, com tema claro e escuro e layout pensado para o celular.
 
-## 🚀 Como rodar o projeto localmente
+## 🔒 Destaques técnicos
 
-### 1. Pré-requisitos
-Certifique-se de ter o [Node.js](https://nodejs.org/) instalado em sua máquina e uma conta no [Supabase](https://supabase.com/).
+**Segurança**
+- Autenticação com Supabase Auth via cookies, usando `@supabase/ssr` para manter a sessão no servidor.
+- Todas as rotas privadas passam pelo `proxy.ts` (middleware do Next.js), que redireciona para o login quem não está autenticado.
+- **Row Level Security (RLS)** no PostgreSQL: cada usuário só lê e altera as próprias linhas, regra garantida pelo banco e não só pelo front-end.
+- Formulários validados com **Zod** e React Hook Form.
 
-### 2. Clonando o repositório
-```bash
-git clone [https://github.com/SEU_USUARIO/myfinpocket.git](https://github.com/SEU_USUARIO/myfinpocket.git)
-cd myfinpocket
+**Qualidade**
+- Testes unitários com **Jest** e **React Testing Library** (componentes e formatação de moeda).
+- Testes E2E com **Playwright**: carregamento do login, erro com credenciais inválidas, bloqueio de acesso sem login e layout mobile.
+- Os testes E2E rodam no **GitHub Actions** a cada push e pull request na `main`.
+
+**Arquitetura**
+- Next.js com App Router e **Server Actions** para as operações de dados (`src/app/actions`).
+- Regras de consulta isoladas em `src/services` (dashboard e relatórios).
+- Componentes de interface com **shadcn/ui** e gráficos com **Tremor** e **Recharts**.
+
+## 🛠️ Stack
+
+| Camada | Tecnologias |
+|---|---|
+| Front-end | Next.js (App Router), React, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
+| Back-end | Next.js Server Actions e Route Handlers, Supabase (PostgreSQL + Auth) |
+| Validação | Zod, React Hook Form |
+| Gráficos e PDF | Tremor, Recharts, jsPDF |
+| IA | Google Gemini (`@google/generative-ai`) |
+| Testes | Jest, React Testing Library, Playwright |
+| CI | GitHub Actions |
+
+## 📁 Estrutura
+
+```
+src/
+├── app/
+│   ├── (dashboard)/     # visão geral
+│   ├── actions/         # Server Actions: transações, contas, metas, IA...
+│   ├── api/pix/         # baixa em lote via PIX
+│   └── reports, goals, wallets, categories, subscriptions, import, profile
+├── components/          # componentes da aplicação e ui/ (shadcn)
+├── lib/supabase/        # clientes do Supabase para browser, servidor e middleware
+├── services/            # consultas do dashboard e dos relatórios
+└── proxy.ts             # proteção das rotas
+tests/                   # testes E2E (Playwright)
+__tests__/               # testes unitários (Jest)
 ```
 
-### 3. Instalando as dependências
+## 🚀 Como rodar localmente
+
+**Pré-requisitos:** Node.js 20+ e um projeto no [Supabase](https://supabase.com/).
+
 ```bash
+git clone https://github.com/devpedroeduardo/my-finpocket.git
+cd my-finpocket
 npm install
 ```
 
-### 4. Configurando as Variáveis de Ambiente
-Crie um arquivo `.env.local` na raiz do projeto e preencha com as suas credenciais:
+Crie um arquivo `.env.local` na raiz:
 
 ```env
-# Supabase (Banco de Dados e Autenticação)
 NEXT_PUBLIC_SUPABASE_URL=sua_url_do_supabase
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
-
-# Inteligência Artificial (Gemini API)
-GOOGLE_GEMINI_API_KEY=sua_chave_de_api_aqui
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
+SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role
+GEMINI_API_KEY=sua_chave_do_gemini
 ```
 
-### 5. Configuração do Banco de Dados (Supabase)
-O projeto utiliza um banco PostgreSQL estruturado com RLS ativado para garantir o isolamento dos dados de cada usuário. As tabelas principais são:
-- `transactions` (Receitas e Despesas vinculadas ao `user_id`)
-- `goals` (Cofres / Objetivos financeiros vinculados ao `user_id`)
-- `budgets` (Limites de gastos por categoria vinculados ao `user_id`)
-- `wallets` (Contas bancárias do usuário)
+No Supabase, crie as tabelas `transactions`, `wallets`, `goals` e `budgets` vinculadas ao `user_id` e ative políticas de RLS que liberem acesso apenas quando `auth.uid() = user_id`.
 
-*Certifique-se de configurar as Políticas (Policies) de Row Level Security (RLS) no Supabase para permitir acesso apenas aos dados do próprio `auth.uid()`.*
-
-### 6. Executando a aplicação
-Para rodar em modo de desenvolvimento:
 ```bash
 npm run dev
 ```
-Acesse [http://localhost:3000](http://localhost:3000) no seu navegador. O sistema exigirá a criação de uma conta na tela de login para acessar o Dashboard.
 
-*Nota: Para testar a funcionalidade PWA (instalação do app), é necessário gerar a build de produção rodando `npm run build` e depois `npm run start`.*
+A aplicação abre em http://localhost:3000. Para testar a instalação como PWA, use a build de produção (`npm run build` e `npm run start`).
 
-## 🛣️ Próximos Passos (Roadmap)
-- [ ] Integração final da conciliação bancária de extratos com fluxos via Webhooks no n8n.
+## 🧪 Testes
 
----
+```bash
+npm test                              # testes unitários (Jest)
+npx playwright install --with-deps    # primeira vez apenas
+npx playwright test                   # testes E2E
+```
 
-Desenvolvido com dedicação por Pedro Eduardo.
+## 🛣️ Próximos passos
+
+- [ ] Importação e conciliação de extratos bancários automatizada com n8n
+
+## 👨‍💻 Autor
+
+**Pedro Eduardo** · [LinkedIn](https://www.linkedin.com/in/devpedroeduardo/) · [GitHub](https://github.com/devpedroeduardo)
